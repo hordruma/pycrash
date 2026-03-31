@@ -4,7 +4,7 @@
 
 Pycrash is a 2D vehicle crash simulation and accident reconstruction tool. It models vehicle motion, tire physics, and vehicular impacts using SDOF, impulse-momentum, and sideswipe collision models. Used in forensic accident reconstruction and litigation support. Published on PyPI, validated against SAE papers and NHTSA crash test data.
 
-**License:** GPLv3 | **Python:** >=3.6 | **Version:** 0.0.17 | **Author:** Joe Cormier
+**License:** GPLv3 | **Python:** >=3.9 | **Version:** 0.0.18 | **Author:** Joe Cormier
 
 ## Repository Layout
 
@@ -59,8 +59,19 @@ pycrash/                        # Main package
     config.py                   # Simulation defaults (dt, friction, slip angles)
     definitions.py              # Column/variable definitions
 
+  cli.py                        # Click-based CLI (pycrash info/sdof/vehicle/project)
+  units.py                      # Metric unit conversion (MetricVehicle, MetricResults)
+
   dash/                         # Dash web interface (minimal)
     app.py
+
+tests/                          # pytest test suite (137 tests)
+  conftest.py                   # Shared fixtures and vehicle input dicts
+  test_ar.py                    # AR equation tests
+  test_sdof.py                  # SDOF solver and spring model tests
+  test_tire_model.py            # Tire force calculation tests
+  test_vehicle.py               # Vehicle class tests
+  test_vehicle_model.py         # Vehicle dynamics integration tests
 
 projects/                       # Example/validation projects (Jupyter notebooks)
   pycrash demo/                 # Basic functionality demo
@@ -144,12 +155,21 @@ jupyter notebook projects/pycrash\ demo/notebooks/
 
 ## Testing
 
-**No formal test suite exists.** Validation is done through Jupyter notebooks in `projects/` comparing simulation output against published SAE papers and NHTSA crash test data. Key validation notebooks:
+```bash
+# Run all tests (137 tests)
+python -m pytest tests/ -v
 
-- `projects/validation sdof/` - SDOF against published stiffness data
-- `projects/validation impact momentum/` - IMPC against Carpenter et al.
-- `projects/validation sideswipe/` - Sideswipe against Funk et al.
-- `projects/validation - single vehicle motion/` - Vehicle dynamics validation
+# Run specific test modules
+python -m pytest tests/test_ar.py        # AR equations
+python -m pytest tests/test_sdof.py      # SDOF solver + spring models
+python -m pytest tests/test_vehicle.py   # Vehicle class
+python -m pytest tests/test_vehicle_model.py  # Vehicle dynamics
+python -m pytest tests/test_tire_model.py     # Tire forces
+```
+
+Test coverage: Vehicle creation/properties, driver inputs, SDOF solver (momentum conservation, COR, stiffness), spring models (constant + table), tire forces (FWD/RWD/AWD, slip angles, weight transfer, lock detection), vehicle dynamics (braking, coasting, turning, coordinate transforms, position integration), AR equations (A/B stiffness, delta-V, crush energy, restitution).
+
+Additional validation via Jupyter notebooks in `projects/` comparing against published SAE papers and NHTSA crash test data.
 
 ## Default Simulation Parameters
 
@@ -173,8 +193,11 @@ alpha_max = 0.174533  # 10 degrees
 - `vehicle.model` is the central DataFrame that accumulates all simulation results per timestep.
 - Impact detection uses point-in-polygon / point-edge geometry (`impact_detect.py`). Striking vehicle corner points are tested against struck vehicle edges.
 - The IMPC model transforms to a normal-tangential frame at the impact point, calculates impulse, checks sliding condition, then transforms back.
-- Pickle is used for project persistence (`project.py`). Be aware of pickle security implications.
+- Pickle is used for project persistence (`project.py`). JSON save/load available as safer alternative via `save_project_json()` / `load_project_json()`.
 - Visualization defaults to Plotly with browser rendering. Matplotlib used for static force-displacement plots.
 - Monte Carlo capability exists in `sdof_model_mc.py` / `sodf_montecarlo.py` using joblib for parallelization.
-- No type hints, no formal tests, no CI/CD pipeline currently. These are areas for improvement.
+- Type hints added across all public API and core internals. Uses `TYPE_CHECKING` pattern to avoid circular imports.
+- CLI available via `pycrash` command (info, sdof, vehicle, project subcommands). See `pycrash/cli.py`.
+- Metric unit support via `pycrash/units.py`: `MetricVehicle(dict)` converts metric inputs to imperial, `MetricResults(df)` converts output DataFrame to metric.
+- No CI/CD pipeline currently.
 - The `projects/` directory uses cookiecutter templates for standardized project structure.
