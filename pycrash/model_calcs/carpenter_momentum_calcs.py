@@ -1,9 +1,17 @@
+from __future__ import annotations
+from typing import Any, Dict, List, Tuple, TYPE_CHECKING
 import pandas as pd
 import math
 import os
 
-def impc(i, impactNum, poi_veh2x, poi_veh2y, impPointEdge, vehicle_list,
-         strikingVehicle, struckVehicle, impc_inputs, dt_motion, show_results=True):
+if TYPE_CHECKING:
+    from pycrash.vehicle import Vehicle
+
+
+def impc(i: int, impactNum: int, poi_veh2x: float, poi_veh2y: float,
+         impPointEdge: Dict[int, Dict[str, Any]], vehicle_list: List['Vehicle'],
+         strikingVehicle: int, struckVehicle: int, impc_inputs: Dict[str, float],
+         dt_motion: float, show_results: bool = True) -> Tuple[List['Vehicle'], Dict[str, Any]]:
     cor = impc_inputs['cor']
     cof = impc_inputs['vehicle_mu']
     veh1 = vehicle_list[strikingVehicle]

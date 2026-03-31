@@ -1,30 +1,33 @@
-
+from __future__ import annotations
+from typing import Optional, Union
 import pandas as pd
 import numpy as np
 import csv
 import os
-dt_impact = 0.0001
-mu_max = 0.9
+
+dt_impact: float = 0.0001
+mu_max: float = 0.9
 
 """
 Performs iterative calculations for the SDOF impact simulation
 """
-# TODO: update to take user defined inputs
 
-# Functions
-# v2 brake force wil oppose the spring force as long as the vehicle is moving forward
-def BrakeCheck(brake_applied, springF, v):
-    if v > 0:                 # vehicle is in motion - full brake force applied
+
+def BrakeCheck(brake_applied: float, springF: float, v: float) -> float:
+    """v2 brake force will oppose the spring force as long as the vehicle is moving forward"""
+    if v > 0:
         return brake_applied * -1 * sign(v)
-    if brake_applied == 0:    # no brake applied - brake force will be zero
+    if brake_applied == 0:
         return 0
-    elif abs(springF) > brake_applied:  # spring force is greater than brake force full brake force applied
+    elif abs(springF) > brake_applied:
         return brake_applied * -1
-    elif abs(springF) < brake_applied:  # spring force is less than braking force so accel will = 0
+    elif abs(springF) < brake_applied:
             return springF * -1
+    return 0.0
 
-def sign(x):
-    # returns the sign of a number
+
+def sign(x: float) -> int:
+    """returns the sign of a number"""
     if x > 0:
         return 1
     elif x < 0:
@@ -34,8 +37,11 @@ def sign(x):
     else:
         return x
 
-def SingleDOFmodel(W1, v1_initial, v1_brake, W2, v2_initial, v2_brake, k, cor,
-                    tstop, ktype, ttype):
+
+def SingleDOFmodel(W1: float, v1_initial: float, v1_brake: float,
+                   W2: float, v2_initial: float, v2_brake: float,
+                   k: Union[float, int], cor: float,
+                   tstop: Optional[float], ktype: str, ttype: int) -> pd.DataFrame:
 
     _tstop = 0 # default limit for ttype == 0 will use t-stop otherwise
 

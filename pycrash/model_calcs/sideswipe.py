@@ -1,5 +1,11 @@
+from __future__ import annotations
+from typing import List, TYPE_CHECKING
 import numpy as np
 import os
+import pandas as pd
+
+if TYPE_CHECKING:
+    from pycrash.vehicle import Vehicle
 
 """
 calculates intervehicular forces using a sideswipe model (mutual crush + frictional forces)
@@ -7,7 +13,8 @@ validated using Funk () see validation directory for simulations and reports
 """
 
 
-def ss(vehicle_list, crush_data, kmutual, vehicle_mu, i):
+def ss(vehicle_list: List['Vehicle'], crush_data: pd.DataFrame,
+       kmutual: float, vehicle_mu: float, i: int) -> List['Vehicle']:
     """
     normal force is applied normal to the struck vehicle (vehicle 2)
     frictional force is applied along the impacting plane opposite to relative velocity

@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
 import pandas as pd
 import numpy as np
 from copy import deepcopy
@@ -12,6 +14,9 @@ from .visualization.kinematics import plot_model
 from .visualization.vehicles_at_impact import plot_impact
 pd.options.mode.copy_on_write = False
 
+if TYPE_CHECKING:
+    from .vehicle import Vehicle
+
 # column list for vehicle model
 vehicle_data_columns = ['t', 'vx', 'vy', 'Vx', 'Vy', 'Vr', 'vehicleslip_deg', 'vehicleslip_rad', 'oz_deg', 'oz_rad', 'delta_deg',
                         'delta_rad', 'turn_rX', 'turn_rY', 'turn_rR', 'au', 'av', 'ax', 'ay', 'ar', 'Ax', 'Ay', 'Ar',
@@ -23,7 +28,7 @@ vehicle_data_columns = ['t', 'vx', 'vy', 'Vx', 'Vy', 'Vr', 'vehicleslip_deg', 'v
 #model = pd.DataFrame(np.zeros(shape=(1, len(vehicle_data_columns))), columns=vehicle_data_columns)
 
 """ create inputs for impact """
-def create_impact_order():
+def create_impact_order() -> List[List[int]]:
     """ create list of impacts with list of striking and struck vehicle for each impact """
     print('Creating list of striking and struck vehicle for each impact')
     print('Vehicle indices start at 0')
@@ -37,7 +42,7 @@ def create_impact_order():
     print(f'Impact order defined as: {impact_order}')
     return impact_order
 
-def create_impc_inputs(numImpacts):
+def create_impc_inputs(numImpacts: int) -> Dict[int, Dict[str, float]]:
     """ create dictionary for each impact with intervehicle friction and restitution
         defined for each impact  """
     impc_inputs = {}
@@ -56,7 +61,10 @@ main file for controlling vehicle motion simulation and impact
 """
 
 class Impact():
-    def __init__(self, name, endTime, impact_type, vehicle_list, impact_order=None, impc_inputs=None, user_sim_defaults=None):
+    def __init__(self, name: str, endTime: float, impact_type: str,
+                 vehicle_list: List['Vehicle'], impact_order: Optional[List[List[int]]] = None,
+                 impc_inputs: Optional[Dict[int, Dict[str, float]]] = None,
+                 user_sim_defaults: Optional[Dict[str, float]] = None) -> None:
         """ impact_order defines the [striking , struck] vehicle using a list of lists
         impc_inputs is a dictionary of inputs for each impact of the form {0:{'vehicle_mu': 0.3, 'cor': 0.1}}"""
         self.name = name
@@ -213,28 +221,26 @@ class Impact():
 
     """ plot initial positions: include impact planes """
     # plot initial position
-    def show_initial_position(self, imageDict=False):
+    def show_initial_position(self, imageDict: Any = False) -> None:
         initial_position(position_data_static(self.vehicles), imageDict)
 
-    """ plot vehicle motion """
-    def plot_vehicle_motion(self, n_intervals, imageDict=False, tire_path=True, show_vector=False):
+    def plot_vehicle_motion(self, n_intervals: int, imageDict: Any = False,
+                           tire_path: bool = True, show_vector: bool = False) -> None:
         plotImpactPoint = 0     # starts at 1
         plot_motion_interval(self.name, self.vehicles, self._impactIndex, n_intervals, imageDict,
                              tire_path=tire_path, show_vector=show_vector)
 
-    """ plot vehicles at impact """
-    def plot_impact(self, impactNum):
+    def plot_impact(self, impactNum: int) -> None:
             for key, value in self._impactIndex.items():
                 if value == impactNum:
                     plot_impact(self.name, self.vehicles, key-1, self._impactIndex, show_vector=True)
                     print(f'Plotting impact {value} at index {key}')
 
-    """ plot kinematic data """
-    def plot_model(self, vehNum):
+    def plot_model(self, vehNum: int) -> None:
         plot_model(self.vehicles[vehNum])
 
     """ initiate impact simulation """
-    def simulate(self, show_results=True):
+    def simulate(self, show_results: bool = True) -> None:
         """
         end_time <- default time of simulation (seconds), simulation will still stop if vehicle motion is zero
         """

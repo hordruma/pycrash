@@ -1,6 +1,8 @@
 """
 vehicle motion for multiple vehicles
 """
+from __future__ import annotations
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 from .model_calcs.sideswipe import ss
 from .model_calcs.tire_model import tire_forces
 from .model_calcs.impact_detect import detect
@@ -12,6 +14,9 @@ import math
 import csv
 import os
 
+if TYPE_CHECKING:
+    from .vehicle import Vehicle
+
 # column list for vehicle model
 column_list = ['t', 'vx', 'vy', 'Vx', 'Vy', 'Vr', 'vehicleslip_deg', 'vehicleslip_rad', 'oz_deg', 'oz_rad', 'delta_deg',
                'delta_rad', 'turn_rX', 'turn_rY', 'turn_rR', 'au', 'av', 'ax', 'ay', 'ar', 'Ax', 'Ay', 'Ar',
@@ -20,7 +25,10 @@ column_list = ['t', 'vx', 'vy', 'Vx', 'Vy', 'Vr', 'vehicleslip_deg', 'vehiclesli
                'lf_lock', 'rf_lock', 'rr_lock', 'lr_lock', 'lf_fz', 'rf_fz', 'rr_fz', 'lr_fz',
                'theta_rad', 'theta_deg', 'Fx', 'Fy', 'Mz']
 
-def multi_vehicle_model(vehicle_list, sim_defaults, impact_type, ignore_driver=False, kmutual=None, vehicle_mu=None):
+def multi_vehicle_model(vehicle_list: List['Vehicle'], sim_defaults: Dict[str, float],
+                        impact_type: str, ignore_driver: bool = False,
+                        kmutual: Optional[float] = None,
+                        vehicle_mu: Optional[float] = None) -> Tuple[List['Vehicle'], pd.DataFrame]:
     """
     Calculate vehicle dynamics from driver inputs and environmental inputs
     vehicle_list is a list of vehicle class instances [veh1, veh2] - two currently

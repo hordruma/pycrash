@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Any, Dict, List, Optional, Union
 from .visualization.vehicle import plot_driver_inputs
 import pandas as pd
 import numpy as np
@@ -8,12 +10,12 @@ project_dir = os.path.dirname(os.getcwd())
 input_dir = os.path.join(project_dir, 'data', 'input')
 
 # load defaults
-sim_defaults = {'dt_motion': 0.01,
+sim_defaults: Dict[str, float] = {'dt_motion': 0.01,
                 'mu_max': 0.8,
                 'alpha_max': 0.174533}
 
-mu_max = sim_defaults['mu_max']    # maximum available friction
-dt_motion = sim_defaults['dt_motion']            # iteration time step
+mu_max: float = sim_defaults['mu_max']    # maximum available friction
+dt_motion: float = sim_defaults['dt_motion']            # iteration time step
 
 print('Current values for defined constants:')
 print(f'maximum available friction (mu_max) = {mu_max}')
@@ -105,9 +107,50 @@ class Vehicle:
     Veh1_Weight1, Veh1_Weight2, etc.
     """
 
-    def __init__(self, name, input_dict=None):
+    name: str
+    type: str
+    year: float
+    make: str
+    model: Union[str, pd.DataFrame]
+    weight: float
+    vin: str
+    brake: float
+    steer_ratio: float
+    init_x_pos: float
+    init_y_pos: float
+    head_angle: float
+    width: float
+    length: float
+    hcg: float
+    lcgf: float
+    lcgr: float
+    wb: float
+    track: float
+    f_hang: float
+    r_hang: float
+    tire_d: float
+    tire_w: float
+    izz: float
+    fwd: bool
+    rwd: bool
+    awd: bool
+    A: float
+    B: float
+    k: float
+    L: float
+    c: float
+    vx_initial: float
+    vy_initial: float
+    omega_z: float
+    striking: bool
+    notes: str
+    driver_input: pd.DataFrame
+    isTrailer: bool
+
+    def __init__(self, name: str, input_dict: Optional[Dict[str, Any]] = None) -> None:
         self.name = str(name)
         self.type = "vehicle"   # class type for reference
+        self.isTrailer = False
 
         if input_dict != None:
             for key, value in input_dict.items():
@@ -124,7 +167,7 @@ class Vehicle:
 
             print(f'Vehicle inputs for {self.name} applied successfully')
 
-    def manual_specs(self):  # loop through lists above to create inputs
+    def manual_specs(self) -> None:  # loop through lists above to create inputs
         for i in range(len(input_query)):
                 userEntry = input(input_query[i])
                 try:
@@ -133,7 +176,7 @@ class Vehicle:
                     setattr(self, veh_inputs[i], userEntry)
                 print(f'{input_query[i]} = {userEntry}')
 
-    def load_specs(self, filename):
+    def load_specs(self, filename: str) -> None:
         """ provide file name to .csv file with defined layout
             file must be located in "input" directory
             uses contents of csv to determine attributes for vehicle variables
@@ -148,7 +191,7 @@ class Vehicle:
                 except:
                     setattr(self, row[1], row[2])
 
-    def input_dict(self):
+    def input_dict(self) -> Dict[str, Any]:
         vehicle_input_dict = {"year":self.year,
         "make":self.make,
         "model":self.model,
@@ -185,7 +228,7 @@ class Vehicle:
 
         return vehicle_input_dict
 
-    def time_inputs(self, time, throttle, brake, steer, show_plot=True):
+    def time_inputs(self, time: List[float], throttle: List[float], brake: List[float], steer: List[float], show_plot: bool = True) -> None:
         """
         Driver inputs | time (s) | throttle (%) | braking (%) | steering (deg) |
         time step can be user defined, inputs will be interpolated to match dt for simulation
@@ -213,7 +256,7 @@ class Vehicle:
             if show_plot:
                 plot_driver_inputs(self)
 
-    def read_time_inputsCSV(self, filename):
+    def read_time_inputsCSV(self, filename: str) -> None:
         """
         Driver inputs | time (s) | throttle (%) | brake (%) | steer (deg) |
         time step can be user defined, inputs will be interpolated to match dt for simulation
@@ -246,16 +289,36 @@ class Vehicle:
 
         plot_driver_inputs(self)
 
-    def plot_driver_inputs(self):
+    def plot_driver_inputs(self) -> None:
             plot_driver_inputs(self)
 
-    def dist_inputs(self, filename):
+    def dist_inputs(self, filename: str) -> None:
         """
         Driver inputs | vehicle travel distance (ft) | brake (%) | steer (deg) |
         will override other inputs applied to vehicle
         """
 
-    def show(self):
+    def to_dict(self) -> Dict[str, Any]:
+        """Return all vehicle properties as a JSON-serializable dict."""
+        result: Dict[str, Any] = {}
+        for key, value in self.__dict__.items():
+            if isinstance(value, pd.DataFrame):
+                result[key] = value.to_dict(orient='list')
+            elif isinstance(value, np.ndarray):
+                result[key] = value.tolist()
+            elif isinstance(value, (str, int, float, bool, type(None))):
+                result[key] = value
+            else:
+                result[key] = str(value)
+        return result
+
+    @classmethod
+    def from_dict(cls, name: str, data: Dict[str, Any]) -> 'Vehicle':
+        """Create a Vehicle from a dict (e.g. loaded from JSON)."""
+        veh = cls(name, input_dict=data)
+        return veh
+
+    def show(self) -> None:
         for key in self.__dict__.keys():
             if isinstance(self.__dict__[key], pd.DataFrame):
                 print("")

@@ -1,12 +1,20 @@
+from __future__ import annotations
+from typing import Dict, List, TYPE_CHECKING
 from .model_calcs.tire_model import tire_forces
 import pandas as pd
 import numpy as np
 from scipy import integrate
+try:
+    _cumtrapz = integrate.cumulative_trapezoid
+except AttributeError:
+    _cumtrapz = integrate.cumtrapz
 import math
 
+if TYPE_CHECKING:
+    from .vehicle import Vehicle
 
 # column list for vehicle model
-column_list = ['t', 'vx','vy', 'Vx', 'Vy', 'Vr', 'oz_deg', 'oz_rad', 'delta_deg',
+column_list: List[str] = ['t', 'vx','vy', 'Vx', 'Vy', 'Vr', 'oz_deg', 'oz_rad', 'delta_deg',
            'delta_rad', 'turn_rX', 'turn_rY', 'turn_rR', 'au', 'av',
            'ax','ay', 'ar', 'Ax', 'Ay', 'Ar', 'alphaz', 'alphaz_deg',
            'beta_deg','beta_rad', 'lf_fx', 'lf_fy', 'rf_fx', 'rf_fy',
@@ -14,7 +22,7 @@ column_list = ['t', 'vx','vy', 'Vx', 'Vy', 'Vr', 'oz_deg', 'oz_rad', 'delta_deg'
            'lf_lock', 'rf_lock', 'rr_lock', 'lr_lock', 'lf_fz', 'rf_fz', 'rr_fz', 'lr_fz',
            'theta_rad', 'theta_deg']
 
-def vehicle_model(veh, sim_defaults):
+def vehicle_model(veh: 'Vehicle', sim_defaults: Dict[str, float]) -> 'Vehicle':
     """
     Calculate vehicle dynamics from driver inputs and environmental inputs
     """
@@ -112,8 +120,8 @@ def vehicle_model(veh, sim_defaults):
         veh.model.beta_rad[i] = math.atan2(veh.model.Vy[i], veh.model.Vx[i])    # move to separate calc
 
     # vehicle position
-    veh.model['Dx'] = veh.init_x_pos + integrate.cumtrapz(list(veh.model.Vx), list(veh.model.t), initial=0)
-    veh.model['Dy'] = veh.init_y_pos + integrate.cumtrapz(list(veh.model.Vy), list(veh.model.t), initial=0)
+    veh.model['Dx'] = veh.init_x_pos + _cumtrapz(list(veh.model.Vx), list(veh.model.t), initial=0)
+    veh.model['Dy'] = veh.init_y_pos + _cumtrapz(list(veh.model.Vy), list(veh.model.t), initial=0)
 
     # converting to degrees
     # TODO: remove for speed

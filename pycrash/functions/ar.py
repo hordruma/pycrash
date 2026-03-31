@@ -1,7 +1,16 @@
-# various equations for reconstruction
+"""Various equations for accident reconstruction"""
+from __future__ import annotations
+from typing import List, Union
 import numpy as np
 
-def b1values(bo, L, C, W):
+# Compatibility: np.trapz was removed in numpy 2.0, replaced by np.trapezoid
+if not hasattr(np, 'trapz'):
+    np.trapz = np.trapezoid
+
+NumericType = Union[float, int, np.ndarray]
+
+
+def b1values(bo: NumericType, L: NumericType, C: NumericType, W: NumericType) -> NumericType:
     """
     calculate b1 given bo, damage length (L), damage depth (C) and vehicle weight (W)
     calculate b1 and bo values
@@ -14,7 +23,7 @@ def b1values(bo, L, C, W):
     return -1 * bo / C + np.sqrt((bo**2 + 2))
 
 
-def ABfrombob1(W, bo, b1, L):
+def ABfrombob1(W: NumericType, bo: NumericType, b1: NumericType, L: NumericType) -> List[NumericType]:
     """
     return A and B stiffness values from Weight, b0, b1 and damage length (L)
     calculate A anb B values from bo and b1
@@ -28,7 +37,7 @@ def ABfrombob1(W, bo, b1, L):
     B = 0.802 * W * b1**2 / L
     return [A, B]
 
-def CrushEnergyAB(A, B, L, C):
+def CrushEnergyAB(A: NumericType, B: NumericType, L: NumericType, C: NumericType) -> NumericType:
     """
     crush energy [in-lb] from A and B values
     L - crush length [in]
@@ -36,7 +45,7 @@ def CrushEnergyAB(A, B, L, C):
     """
     return L * (A*C + (B * C**2 / 2) + (A**2 / (2*B)))
 
-def CrushForceAB(A, B, L, C):
+def CrushForceAB(A: NumericType, B: NumericType, L: NumericType, C: NumericType) -> NumericType:
     """
     calculate force from crush using A and B
     A [lb/in]
@@ -46,7 +55,7 @@ def CrushForceAB(A, B, L, C):
     """
     return L * (A + (B * C))
 
-def StrikingDV(w1, w2, v1, v2, rest):
+def StrikingDV(w1: float, w2: float, v1: float, v2: float, rest: float) -> float:
     """
     calculate striking vehicle delta-V [mph] given:
     w1, w2 - vehicle weights [lb]
@@ -59,7 +68,7 @@ def StrikingDV(w1, w2, v1, v2, rest):
     v2 = v2 * 1.46667
     return (m2 / (m1 + m2) * (1 + rest) * (v1 - v2)) * 0.681818181818181
 
-def StruckDV(w1, w2, v1, v2, rest):
+def StruckDV(w1: float, w2: float, v1: float, v2: float, rest: float) -> float:
     """
     calculate struck vehicle delta-V [mph] given:
     w1, w2 - vehicle weights [lb]
@@ -73,7 +82,7 @@ def StruckDV(w1, w2, v1, v2, rest):
     return (m1 / (m1 + m2) * (1 + rest) * (v1 - v2)) * 0.681818181818181
 
 
-def EnergyDV(w1, w2, Edis, cor):
+def EnergyDV(w1: float, w2: float, Edis: float, cor: float) -> List[float]:
     """
     see Rose SAE #2005-01-1200
     vehicle 1 and 2 delta-V [mph]
@@ -89,7 +98,7 @@ def EnergyDV(w1, w2, Edis, cor):
     print(f'Delta-V in mph | v1: {dv1*0.681818181818181:0.2f}, v2: {dv2*0.681818181818181:0.2f}')
     return [dv1*0.681818181818181, dv2*0.681818181818181]
 
-def formFactorin(crush_list_in):
+def formFactorin(crush_list_in: List[float]) -> float:
     """
     crush_list is a list of 6 crush measurements [in]
     """
@@ -107,7 +116,8 @@ def formFactorin(crush_list_in):
         crush_list_in[3]*crush_list_in[4] + 2*crush_list_in[4]**2 + crush_list_in[4]*crush_list_in[5] + crush_list_in[5]**2
     return A * B
 
-def FrickeEfromAB(A, B, L, crush_list, theta=0):
+def FrickeEfromAB(A: NumericType, B: NumericType, L: NumericType,
+                  crush_list: List[float], theta: float = 0) -> NumericType:
     """
     crush_list in inches
     """
@@ -120,14 +130,14 @@ def FrickeEfromAB(A, B, L, crush_list, theta=0):
                      crush_list[4] * crush_list[5])
     return (L / 5) * (one + two) * (1+np.tan(theta)**2)
     
-def BarrierCrushEnergy(W, s):
+def BarrierCrushEnergy(W: float, s: float) -> float:
     """
     W [lb] = weight of test vehicle
     s [mph] = barrier impact speed
     """
     return 0.5 * (W/32.2) * (s*1.46667)**2
 
-def cipriani_rest(ClosingSpeed):
+def cipriani_rest(ClosingSpeed: float) -> float:
     """
     calculate restitution based on closing speed in mph
     based on regression performed by Cipriani
@@ -141,7 +151,7 @@ def cipriani_rest(ClosingSpeed):
     D = 0.11639 * np.log10(abs(ClosingSpeed) * 0.44704)**3
     return A - B + C - D
 
-def CrushEnergyInt(dx, f):
+def CrushEnergyInt(dx: np.ndarray, f: np.ndarray) -> float:
     """
     calculate dissipated energy from force-deformation data
     dx [ft]
@@ -150,14 +160,14 @@ def CrushEnergyInt(dx, f):
 
     return np.trapz(f, x=dx)
 
-def SpringSeriesKeff(k1, k2):
+def SpringSeriesKeff(k1: float, k2: float) -> float:
     """
     calcualte effective stiffness for two springs in series
     """
 
     return 1 / (1/k1 + 1/k2)
 
-def BEVfromE(W, E):
+def BEVfromE(W: float, E: float) -> float:
     """
     calculate Barrier Equivalent Velocity [mph] from Energy [ft/lb]
     """

@@ -4,6 +4,8 @@ Dependencies = tire model
 Inputs - pulled from Vehicle class - initial speed (static), variable - braking / steering
 Interpolates braking steering with time / distance
 """
+from __future__ import annotations
+from typing import Dict, List, Optional, TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 from .data.defaults.config import default_dict
@@ -17,6 +19,9 @@ from .model_calcs.collision_plane import define_impact_plane, define_impact_edge
 import pandas as pd
 import numpy as np
 import os
+
+if TYPE_CHECKING:
+    from .vehicle import Vehicle
 
 # load defaults
 mu_max = default_dict['mu_max']  # maximum available friction
@@ -47,7 +52,9 @@ class KinematicsTwo():
     creates independent copy of vehicle at instantiation
     """
 
-    def __init__(self, name, impact_type, veh1, veh2, mutual_stiffness=None, vehicle_friction=None, user_sim_defaults=None):
+    def __init__(self, name: str, impact_type: str, veh1: 'Vehicle', veh2: 'Vehicle',
+                 mutual_stiffness: Optional[float] = None, vehicle_friction: Optional[float] = None,
+                 user_sim_defaults: Optional[Dict[str, float]] = None) -> None:
         self.name = name
         self.type = 'multimotion'  # class type for saving files
         self.veh1 = deepcopy(veh1)
@@ -153,11 +160,11 @@ class KinematicsTwo():
             print("")
             self.veh2 = define_impact_edge(veh2, iplane=False)
 
-    def plot_inputs(self):
+    def plot_inputs(self) -> None:
         for veh in [self.veh1, self.veh2]:
             plot_driver_inputs(veh)
 
-    def plot_motion(self):
+    def plot_motion(self) -> None:
         for veh in [self.veh1, self.veh2]:
             fig, axs = plt.subplots(3, 2, figsize=figure_size, sharex='col')
             fig.suptitle(f'{veh.name}', fontsize=16)
@@ -208,13 +215,13 @@ class KinematicsTwo():
             plt.show()
 
     # plot initial positions and any motion data to show vehicle paths
-    def show_initial_position(self, i=0):
+    def show_initial_position(self, i: int = 0) -> None:
         # TODO: future - can choose a time point
         [self.veh1, self.veh2] = position_data_static([self.veh1, self.veh2])
         initial_position(self.veh1, self.veh2, i)
 
     # run vehicle models
-    def simulate(self, ignore_driver=False):
+    def simulate(self, ignore_driver: bool = False) -> None:
         if self.impact_type == 'SS':
             [self.veh1, self.veh2], self.crush_data = multi_vehicle_model(vehicle_list=[self.veh1, self.veh2], sim_defaults=self.sim_defaults,
                                                                           impact_type=self.impact_type, ignore_driver=ignore_driver, kmutual=self.kmutual, vehicle_mu=self.vehicle_mu)
@@ -225,5 +232,5 @@ class KinematicsTwo():
         self.veh1 = position_data_motion(self.veh1, striking=True)
         self.veh2 = position_data_motion(self.veh2)
 
-    def draw_simulation(self, n_intervals, tire_path=True, show_vector=False):
+    def draw_simulation(self, n_intervals: int, tire_path: bool = True, show_vector: bool = False) -> None:
         plot_motion_interval([self.veh1, self.veh2], n_intervals, tire_path=True, show_vector=False)
