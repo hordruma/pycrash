@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: pycrash_ai/Dockerfile.api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ..:/app
+      - reports:/app/reports
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - PYCRASH_ENV=development
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: uvicorn pycrash_ai.api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build:
+      context: ..
+      dockerfile: pycrash_ai/Dockerfile.api
+    volumes:
+      - ..:/app
+      - reports:/app/reports
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - PYCRASH_ENV=development
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: celery -A pycrash_ai.api.tasks.worker worker --loglevel=info --concurrency=4
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  reports:
