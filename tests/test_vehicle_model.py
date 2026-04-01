@@ -93,20 +93,14 @@ class TestStraightLineBraking:
         assert avg_au == pytest.approx(-25.76, rel=0.15)
 
     def test_awd_braking_deceleration(self):
-        """AWD vehicle braking deceleration.
-        Note: the AWD code in tire_model.py has a known parenthesis bug for
-        the right front tire, causing asymmetric braking forces and reduced
-        overall deceleration (~24 ft/s^2 instead of ideal ~25.76)."""
+        """AWD vehicle should also decelerate at ~0.8g with full braking."""
         veh = run_vehicle_sim(
             AWD_INPUT,
             time=[0, 3], throttle=[0, 0], brake=[1, 1], steer=[0, 0]
         )
         mask = veh.model.t <= 0.5
         avg_au = veh.model.au[mask].mean()
-        # AWD braking produces ~24 ft/s^2 decel due to known rf tire bug
-        # The sign is positive because the rf tire pushes forward slightly
-        # Net decel is still significant but not the full 0.8g
-        assert abs(avg_au) > 20  # at least significant deceleration occurs
+        assert avg_au == pytest.approx(-25.76, rel=0.15)
 
 
 # ============================================================================
@@ -215,20 +209,17 @@ class TestPosition:
 
     def test_braking_distance(self):
         """
-        Braking distance from 30 mph (44 fps).
-        Ideal at 0.8g: d = v^2/(2*a) = 44^2/(2*25.76) ~ 37.6 ft
-        The tire model applies force at the friction limit boundary (not
-        exceeding it), so actual deceleration is slightly below 0.8g.
-        The vehicle travels further but should still stop within a
-        reasonable distance.
+        Braking distance from 30 mph at 0.8g:
+        d = v^2 / (2*a) = 44^2 / (2*25.76) ~ 37.6 ft
         """
         veh = run_vehicle_sim(
             CAMRY_INPUT,
             time=[0, 3], throttle=[0, 0], brake=[1, 1], steer=[0, 0]
         )
         final_dx = veh.model.Dx.iloc[-1]
-        # Vehicle should travel between 35 and 60 ft to stop from 30 mph
-        assert 35 < final_dx < 60
+        # Tire model applies force at friction limit boundary, so actual
+        # stopping distance is longer than ideal (~37.6 ft). Accept 35-55 ft.
+        assert 35 < final_dx < 55
 
     def test_heading_90_moves_in_y(self):
         """Vehicle heading 90 degrees should move in +Y direction."""
