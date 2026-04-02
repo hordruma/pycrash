@@ -73,13 +73,13 @@ Crash reconstruction is a $500M-$1B/year US market dominated by $5,000-$8,000/ye
 
 ### 2.2 Value Proposition
 
-**For reconstructionists:** 10x throughput. Handle 400 cases/year instead of 40. Drop per-case cost to $500-$1,000 while maintaining quality.
+**For reconstructionists:** 10x throughput. Handle 400 cases/year instead of 40. No more $8K/year software licenses. Run it on your laptop for free.
 
-**For attorneys:** Same-day preliminary results. Full report in 48 hours instead of 6 weeks. Integrated sensitivity analysis that shows "even if speed was 5 mph different, the conclusion holds."
+**For attorneys:** Same-day preliminary results instead of 6-week wait. Integrated sensitivity analysis that shows "even if speed was 5 mph different, the conclusion holds."
 
-**For insurers:** Sub-$500 automated screening. Flag suspicious claims in hours, not weeks. Reserve reconstruction experts for complex cases.
+**For researchers:** Open-source, reproducible, citable. Every simulation is a JSON config that anyone can re-run. Publish papers with code that reviewers can actually execute.
 
-**For researchers:** Open-source, reproducible, citable. Every simulation is a JSON config that anyone can re-run.
+**For the community:** Free, open, GPLv3. Anyone can contribute vehicle data, validation tests, report templates, or new physics models. No vendor lock-in, no subscription walls.
 
 ### 2.3 Daubert Defensibility (Non-Negotiable)
 
@@ -414,7 +414,7 @@ pycrash_ai/
 - Photo-based crush measurement (CV)
 - Multi-language report generation
 - API rate limiting and usage tracking
-- **Deliverable:** Deployable SaaS or on-prem solution
+- **Deliverable:** Self-hosted platform anyone can run locally
 
 ---
 
@@ -424,7 +424,7 @@ pycrash_ai/
 |--------|--------------|-----------------|----------------|
 | Time: report to simulation | 4-8 hours | 5 minutes (API) | 30 seconds (auto) |
 | Time: simulation to report | 8-16 hours | N/A | 10 minutes |
-| Cost per reconstruction | $3,450-$6,900 | $50 (compute) | $100 (compute + AI) |
+| Cost per reconstruction | $3,450-$6,900 | $0 (your hardware) | $0.10 (AI API call) |
 | Simulation accuracy | Same as pycrash | Same as pycrash | Same + uncertainty |
 | Cases per reconstructionist/year | 40-60 | 200+ | 400+ |
 | Daubert challenges survived | N/A | Same as manual | Better (MC + transparency) |
@@ -440,7 +440,7 @@ pycrash_ai/
 | Opposing expert challenges AI-generated report | Case loss | Report explicitly states AI-assisted; methodology is identical to manual |
 | Claude API downtime | Can't extract/generate | Extraction falls back to manual input; simulation runs independently |
 | Over-reliance on automation | Expert de-skilling | Tool augments, not replaces. Expert must review and sign off |
-| Regulatory/ethical concerns | Market resistance | Open-source, transparent, validated. The tool makes the expert faster, not obsolete |
+| LLM API costs for extraction/narration | Recurring expense | Optional — all core simulation works without any API key. BYO key model. |
 
 ---
 
@@ -450,7 +450,7 @@ pycrash_ai/
                     High Automation
                          |
                          |  PycrashAI
-                         |  (AI + open source + Docker)
+                         |  (AI + open source + self-hosted)
                          |
     Open Source ----------+---------- Proprietary
                          |
@@ -462,22 +462,18 @@ pycrash_ai/
 
 **PycrashAI is the only solution in the upper-left quadrant.** Open source AND AI-powered. Every competitor is proprietary and manual.
 
-### Moat
-1. **Open source transparency** directly addresses Daubert "black box" challenges
-2. **AI-powered workflow** is 10-50x faster than manual reconstruction
-3. **Monte Carlo built-in** provides uncertainty quantification that most tools lack
-4. **Docker local-first** means no cloud dependency, no data privacy concerns
-5. **Python ecosystem** means infinite extensibility (ML, CV, NLP)
+### Why This Wins
+1. **GPLv3 open source** — no license fees, ever. Community-owned.
+2. **Daubert-proof transparency** — opposing experts can read every line of code. Try that with PC-Crash.
+3. **AI-powered workflow** is 10-50x faster than manual reconstruction
+4. **Monte Carlo built-in** provides uncertainty quantification that most tools lack
+5. **Docker self-hosted** — your data never leaves your machine. No cloud dependency.
+6. **Python ecosystem** — infinite extensibility. Any researcher can contribute.
+7. **BYO API key** — AI features work with your own Anthropic/OpenAI key. No middleman.
 
----
-
-## 10. BUSINESS MODEL OPTIONS
-
-| Model | Price | Target |
-|-------|-------|--------|
-| **Open Core** | Free (pycrash) + $99/mo (PycrashAI platform) | Solo reconstructionists |
-| **Per-Case** | $50-$200/case (API usage) | Insurance SIU |
-| **Enterprise** | $2,000/mo (on-prem Docker deployment) | Large firms, insurers |
-| **Expert Marketplace** | 20% commission on AI-assisted reconstructions | Attorneys finding experts |
-
-The open-source pycrash package remains free forever. PycrashAI is the commercial layer.
+### Community Growth Strategy
+- Publish validation notebooks comparing PycrashAI vs PC-Crash vs HVE on the same crash tests
+- Submit SAE paper on open-source crash reconstruction with uncertainty quantification
+- Partner with ACTAR for training materials
+- University adoption for teaching crash reconstruction
+- Reconstructionist community contributions (vehicle database, validation data, report templates)
