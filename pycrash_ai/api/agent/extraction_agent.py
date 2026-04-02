@@ -1,11 +1,21 @@
-"""Claude-powered crash report extraction agent."""
+"""Crash report extraction agent - powered by Claude or OpenAI.
+
+Takes unstructured text (police reports, witness statements) and extracts
+structured crash data using LLM tool_use / function calling.
+
+Set ANTHROPIC_API_KEY or OPENAI_API_KEY to enable AI extraction.
+Falls back to heuristic extraction without an API key.
+"""
 from __future__ import annotations
 
-import json
 from typing import Any, Dict, List, Optional
 
-from pycrash_ai.api.config import settings
+from pycrash_ai.api.agent.llm_provider import get_provider, LLMResponse
 from pycrash_ai.api.agent.tools import ALL_TOOLS
+from pycrash_ai.api.agent.ingest import (
+    IngestedDocument, ingest_text, ingest_pdf, ingest_image,
+    build_extraction_messages, build_openai_messages,
+)
 from pycrash_ai.api.models import ExtractionResponse, ExtractedVehicle, ExtractedScene
 
 
@@ -32,61 +42,118 @@ For suggested_model selection:
 - Use "sideswipe" for glancing/sliding contact"""
 
 
-async def extract_from_text(text: str) -> ExtractionResponse:
-    """Extract crash data from text using Claude."""
-    if not settings.anthropic_api_key:
-        return _mock_extraction(text)
+async def extract_from_text(
+    text: str,
+    provider_name: Optional[str] = None,
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
+) -> ExtractionResponse:
+    """Extract crash data from text using LLM.
 
-    import anthropic
+    Args:
+        text: Police report or crash description text
+        provider_name: "anthropic" or "openai" (auto-detected if None)
+        api_key: API key (uses env var if None)
+        model: Model override (uses default if None)
 
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    Returns:
+        ExtractionResponse with vehicles, crash type, scene data
+    """
+    provider = get_provider(provider=provider_name, api_key=api_key, model=model)
 
-    message = client.messages.create(
-        model=settings.claude_model,
-        max_tokens=4096,
+    if provider.name == "mock":
+        return _heuristic_extraction(text)
+
+    response = await provider.complete(
         system=SYSTEM_PROMPT,
+        messages=[{
+            "role": "user",
+            "content": f"Extract all crash data from the following report:\n\n{text}",
+        }],
         tools=ALL_TOOLS,
-        messages=[
-            {
-                "role": "user",
-                "content": f"Extract all crash data from the following report:\n\n{text}",
-            }
-        ],
     )
 
-    # Process tool use responses
+    return _parse_response(response)
+
+
+async def extract_from_document(
+    doc: IngestedDocument,
+    provider_name: Optional[str] = None,
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
+) -> ExtractionResponse:
+    """Extract crash data from an ingested document (PDF, image, or text).
+
+    Automatically selects text-only or vision path based on document content.
+    Scanned PDFs and images use vision-capable models.
+    """
+    provider = get_provider(provider=provider_name, api_key=api_key, model=model)
+
+    if provider.name == "mock":
+        return _heuristic_extraction(doc.full_text)
+
+    # Build appropriate messages based on provider and document type
+    if "openai" in provider.name:
+        messages = build_openai_messages(doc)
+    else:
+        messages = build_extraction_messages(doc)
+
+    response = await provider.complete(
+        system=SYSTEM_PROMPT,
+        messages=messages,
+        tools=ALL_TOOLS,
+    )
+
+    result = _parse_response(response)
+    # Add ingestion metadata
+    if result.raw_extraction:
+        result.raw_extraction["ingestion"] = {
+            "filename": doc.filename,
+            "pages": len(doc.pages),
+            "text_quality": doc.text_quality,
+            "used_vision": doc.needs_vision,
+        }
+    return result
+
+
+def _parse_response(response: LLMResponse) -> ExtractionResponse:
+    """Parse LLM tool calls into ExtractionResponse."""
     vehicles: List[ExtractedVehicle] = []
     crash_type: Optional[str] = None
     scene: Optional[ExtractedScene] = None
     suggested_model: Optional[str] = None
-    raw: Dict[str, Any] = {"tool_calls": []}
+    raw: Dict[str, Any] = {
+        "tool_calls": [{"name": tc.name, "input": tc.input} for tc in response.tool_calls],
+        "model": response.model,
+        "usage": response.usage,
+    }
 
-    for block in message.content:
-        if block.type == "tool_use":
-            raw["tool_calls"].append({"name": block.name, "input": block.input})
+    for tc in response.tool_calls:
+        if tc.name == "extract_vehicle":
+            vehicles.append(ExtractedVehicle(
+                year=tc.input.get("year"),
+                make=tc.input.get("make"),
+                model=tc.input.get("model"),
+                estimated_speed_mph=tc.input.get("estimated_speed_mph"),
+                travel_direction=tc.input.get("travel_direction"),
+                role=tc.input.get("role"),
+                damage_description=tc.input.get("damage_description"),
+                confidence=tc.input.get("confidence", 0.5),
+            ))
+        elif tc.name == "extract_crash_conditions":
+            crash_type = tc.input.get("crash_type")
+            suggested_model = tc.input.get("suggested_model")
+        elif tc.name == "extract_scene":
+            scene = ExtractedScene(
+                road_surface=tc.input.get("road_surface"),
+                weather=tc.input.get("weather"),
+                skid_marks_ft=tc.input.get("skid_marks_vehicle1_ft"),
+                speed_limit_mph=tc.input.get("speed_limit_mph"),
+                confidence=tc.input.get("confidence", 0.5),
+            )
 
-            if block.name == "extract_vehicle":
-                vehicles.append(ExtractedVehicle(
-                    year=block.input.get("year"),
-                    make=block.input.get("make"),
-                    model=block.input.get("model"),
-                    estimated_speed_mph=block.input.get("estimated_speed_mph"),
-                    travel_direction=block.input.get("travel_direction"),
-                    role=block.input.get("role"),
-                    damage_description=block.input.get("damage_description"),
-                    confidence=block.input.get("confidence", 0.5),
-                ))
-            elif block.name == "extract_crash_conditions":
-                crash_type = block.input.get("crash_type")
-                suggested_model = block.input.get("suggested_model")
-            elif block.name == "extract_scene":
-                scene = ExtractedScene(
-                    road_surface=block.input.get("road_surface"),
-                    weather=block.input.get("weather"),
-                    skid_marks_ft=block.input.get("skid_marks_vehicle1_ft"),
-                    speed_limit_mph=block.input.get("speed_limit_mph"),
-                    confidence=block.input.get("confidence", 0.5),
-                )
+    if response.text:
+        raw["text"] = response.text
 
     return ExtractionResponse(
         vehicles=vehicles,
@@ -97,11 +164,10 @@ async def extract_from_text(text: str) -> ExtractionResponse:
     )
 
 
-def _mock_extraction(text: str) -> ExtractionResponse:
-    """Mock extraction when no API key is set. Useful for testing."""
+def _heuristic_extraction(text: str) -> ExtractionResponse:
+    """Heuristic extraction when no API key is set. Useful for testing."""
     text_lower = text.lower()
 
-    # Simple heuristic extraction for demo/testing
     vehicles = []
     if any(w in text_lower for w in ["vehicle 1", "v1", "striking"]):
         vehicles.append(ExtractedVehicle(
@@ -116,7 +182,6 @@ def _mock_extraction(text: str) -> ExtractionResponse:
             confidence=0.3,
         ))
 
-    # Default to two vehicles if none found
     if not vehicles:
         vehicles = [
             ExtractedVehicle(role="striking", confidence=0.1),
@@ -144,5 +209,5 @@ def _mock_extraction(text: str) -> ExtractionResponse:
         crash_type=crash_type,
         scene=ExtractedScene(road_surface="dry_asphalt", confidence=0.1),
         suggested_model=model_map.get(crash_type, "sdof"),
-        raw_extraction={"mock": True, "note": "Set ANTHROPIC_API_KEY for real extraction"},
+        raw_extraction={"mock": True, "note": "Set ANTHROPIC_API_KEY or OPENAI_API_KEY for AI extraction"},
     )

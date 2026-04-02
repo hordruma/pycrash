@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 
-from pycrash_ai.api.routes import simulate, extract, montecarlo, report, vehicles
+from pycrash_ai.api.routes import simulate, extract, montecarlo, report, vehicles, pipeline, cases
 from pycrash_ai.api.config import settings
 
 app = FastAPI(
@@ -29,6 +29,8 @@ app.include_router(extract.router, prefix="/api/v1", tags=["extraction"])
 app.include_router(montecarlo.router, prefix="/api/v1", tags=["montecarlo"])
 app.include_router(report.router, prefix="/api/v1", tags=["report"])
 app.include_router(vehicles.router, prefix="/api/v1", tags=["vehicles"])
+app.include_router(pipeline.router, prefix="/api/v1", tags=["pipeline"])
+app.include_router(cases.router, prefix="/api/v1", tags=["cases"])
 
 # Serve generated reports
 os.makedirs(settings.reports_dir, exist_ok=True)
