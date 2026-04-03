@@ -50,7 +50,7 @@ api-1  | INFO:     Uvicorn running on http://0.0.0.0:8000
 
 ### 4. Open the API
 
-Open your browser to: **http://localhost:8000/docs**
+Open your browser to: **http://localhost:8100/docs**
 
 You'll see the interactive API documentation where you can try everything out.
 
@@ -113,42 +113,42 @@ Build up a case piece by piece:
 
 ```bash
 # Create a case
-curl -X POST http://localhost:8000/api/v1/cases \
+curl -X POST http://localhost:8100/api/v1/cases \
   -H "Content-Type: application/json" \
   -d '{"case_id": "case-001", "title": "Main St rear-end collision"}'
 
 # Add vehicles
-curl -X POST http://localhost:8000/api/v1/cases/case-001/vehicles \
+curl -X POST http://localhost:8100/api/v1/cases/case-001/vehicles \
   -H "Content-Type: application/json" \
   -d '{"vehicle_number": 1, "make": "Toyota", "model": "Camry", "year": 2020, "role": "striking"}'
 
-curl -X POST http://localhost:8000/api/v1/cases/case-001/vehicles \
+curl -X POST http://localhost:8100/api/v1/cases/case-001/vehicles \
   -H "Content-Type: application/json" \
   -d '{"vehicle_number": 2, "make": "Honda", "model": "Civic", "year": 2019, "role": "struck"}'
 
 # Add evidence
-curl -X POST http://localhost:8000/api/v1/cases/case-001/evidence \
+curl -X POST http://localhost:8100/api/v1/cases/case-001/evidence \
   -H "Content-Type: application/json" \
   -d '{"category": "speed", "key": "estimated_speed_mph", "value": 35, "unit": "mph", "confidence": 0.7, "source_type": "witness", "applies_to_vehicle": 1}'
 
 # Check what's missing
-curl http://localhost:8000/api/v1/cases/case-001/gaps
+curl http://localhost:8100/api/v1/cases/case-001/gaps
 
 # Export the case
-curl http://localhost:8000/api/v1/cases/case-001/export
+curl http://localhost:8100/api/v1/cases/case-001/export
 ```
 
 ### Look up vehicle specs
 
 ```bash
 # Search by make
-curl "http://localhost:8000/api/v1/vehicles/lookup?make=Toyota"
+curl "http://localhost:8100/api/v1/vehicles/lookup?make=Toyota"
 
 # Search by make and model
-curl "http://localhost:8000/api/v1/vehicles/lookup?make=Toyota&model=Camry"
+curl "http://localhost:8100/api/v1/vehicles/lookup?make=Toyota&model=Camry"
 
 # List all available makes
-curl http://localhost:8000/api/v1/vehicles/makes
+curl http://localhost:8100/api/v1/vehicles/makes
 ```
 
 ## What's Running
@@ -224,7 +224,7 @@ Async simulation (`/simulate/sdof`) and Monte Carlo require the full Docker setu
 
 **"Docker is not running"** -- Open Docker Desktop and wait for it to fully start.
 
-**Port 8000 already in use** -- Something else is using that port. Either stop it or change the port in `docker-compose.yml` (change `"8000:8000"` to `"9000:8000"`, then use `http://localhost:9000`).
+**Port 8000 already in use** -- Something else is using that port. Either stop it or change the port in `docker-compose.yml` (change `"8100:8000"` to `"9000:8000"`, then use `http://localhost:9000`).
 
 **Build fails** -- Make sure you're in the `pycrash_ai/` directory, not the root. Run `docker compose up --build` (not `docker-compose`, note the space).
 
