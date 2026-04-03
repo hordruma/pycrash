@@ -294,52 +294,50 @@ Police Report PDF
 ### 4.5 Project Structure
 
 ```
-pycrash/
-  ... (existing package)
+pycrash/                        # Core simulation engine (existing)
 
-pycrash_ai/
-  docker-compose.yml          # One command: docker compose up
-  Dockerfile.api              # FastAPI + pycrash
-  Dockerfile.worker           # Celery + pycrash
-  Dockerfile.frontend         # React build
+pycrash_ai/                     # AI-powered reconstruction platform
+  app.py                        # FastAPI application
+  config.py                     # Settings (env vars, defaults)
+  models.py                     # Pydantic request/response models
 
-  api/
-    __init__.py
-    main.py                   # FastAPI app
-    routes/
-      extract.py              # Police report extraction
-      simulate.py             # Simulation endpoints
-      montecarlo.py           # MC analysis endpoints
-      report.py               # Report generation
-      vehicles.py             # Vehicle database lookup
-    agent/
-      extraction_agent.py     # Claude-powered parameter extraction
-      report_agent.py         # Claude-powered narrative generation
-      tools.py                # Tool definitions for Claude API
-    tasks/
-      simulation_tasks.py     # Celery tasks for simulation
-      montecarlo_tasks.py     # Celery tasks for MC runs
-      report_tasks.py         # Celery tasks for PDF generation
-    templates/
-      report_base.html        # Jinja2 report template
-      report.css              # Report styling
-    db/
-      vehicle_database.py     # SQLite vehicle specs lookup
-      vehicles.json           # Seed data (common vehicles)
-    config.py                 # Settings (API keys, defaults)
+  agent/                        # LLM extraction agents
+    extraction_agent.py         # Multi-provider crash report extraction
+    ingest.py                   # Dual-path ingestion (text + vision)
+    llm_provider.py             # Anthropic/OpenAI provider abstraction
+    tools.py                    # LLM tool definitions
 
-  frontend/                   # React app (Phase 2)
-    src/
-      App.tsx
-      components/
-        ChatInterface.tsx     # AI chat for reconstruction
-        SimulationView.tsx    # Results visualization
-        VehicleEditor.tsx     # Edit extracted parameters
-        ReportPreview.tsx     # Preview generated report
+  graph/                        # 6-layer crash reconstruction hypergraph
+    schema.py                   # Node labels, edge types, layer definitions
+    store.py                    # InMemoryCaseGraph + FalkorDB backend
+    layers/                     # One mixin per graph layer
+      entity.py                 # Vehicles, drivers, objects
+      temporal.py               # Events, phases, timeline
+      spatial.py                # Positions, trajectories, impact points
+      evidence.py               # Evidence, sources, contradictions, gaps
+      causal.py                 # Contributing factors, causal chains
+      physical.py               # Delta-V, forces, crush, energy
 
-  tests/
-    test_extraction.py        # Agent extraction tests
-    test_simulation_api.py    # API endpoint tests
+  routes/                       # API route handlers
+    cases.py                    # Case hypergraph CRUD + cross-layer queries
+    extract.py                  # AI extraction from text/PDF/image
+    pipeline.py                 # End-to-end reconstruction pipeline
+    simulate.py                 # SDOF simulation
+    montecarlo.py               # Monte Carlo uncertainty analysis
+    report.py                   # PDF/HTML report generation
+    vehicles.py                 # Vehicle database lookup
+
+  tasks/                        # Celery async workers
+    worker.py                   # Celery app config
+    simulation_tasks.py         # Async SDOF and Monte Carlo tasks
+
+  data/vehicles.json            # 20 common US vehicle specs
+
+  docker/                       # Container infrastructure
+    Dockerfile                  # Python 3.11 + deps
+    docker-compose.yml          # API + worker + Redis + FalkorDB
+
+  tests/test_api.py             # 57+ tests (API, graph, pipeline)
     test_montecarlo.py        # MC distribution tests
     test_report.py            # Report generation tests
 ```

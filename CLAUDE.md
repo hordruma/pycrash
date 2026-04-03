@@ -80,6 +80,56 @@ projects/                       # Example/validation projects (Jupyter notebooks
   validation sideswipe/         # Sideswipe validation
   multiple vehicle impact/      # Multi-impact scenarios
   Create Project Directory.ipynb
+
+pycrash_ai/                     # AI-powered crash reconstruction platform
+  __init__.py
+  app.py                        # FastAPI application entry point
+  config.py                     # App-wide configuration (env vars, defaults)
+  models.py                     # Pydantic request/response models
+  README.md                     # Getting started guide
+
+  agent/                        # LLM-powered extraction agents
+    extraction_agent.py         # Multi-provider crash report extraction
+    ingest.py                   # Dual-path document ingestion (text + vision)
+    llm_provider.py             # Anthropic/OpenAI provider abstraction
+    tools.py                    # LLM tool definitions for extraction
+
+  graph/                        # 6-layer crash reconstruction hypergraph
+    schema.py                   # Node labels, edge types, layer definitions
+    store.py                    # InMemoryCaseGraph, CaseGraphStore, FalkorDB backend
+    layers/                     # Mixin classes, one per graph layer
+      entity.py                 # Vehicles, drivers, objects
+      temporal.py               # Events, phases, timeline
+      spatial.py                # Positions, trajectories, impact points
+      evidence.py               # Evidence, sources, contradictions, gaps
+      causal.py                 # Contributing factors, causal chains
+      physical.py               # Delta-V, forces, crush, energy
+
+  routes/                       # FastAPI route handlers
+    cases.py                    # Case hypergraph CRUD + cross-layer queries
+    extract.py                  # AI extraction from text/PDF/image
+    pipeline.py                 # End-to-end: report in, reconstruction out
+    simulate.py                 # SDOF simulation endpoints
+    montecarlo.py               # Monte Carlo uncertainty analysis
+    report.py                   # PDF/HTML report generation
+    vehicles.py                 # Vehicle database lookup
+
+  tasks/                        # Celery async task workers
+    worker.py                   # Celery app configuration
+    simulation_tasks.py         # Async SDOF and Monte Carlo tasks
+
+  data/                         # Static data files
+    vehicles.json               # 20 common US vehicle specs database
+
+  docker/                       # Container infrastructure
+    Dockerfile                  # Python 3.11 + WeasyPrint deps
+    docker-compose.yml          # API + worker + Redis + FalkorDB
+
+  scripts/                      # Development scripts
+    run_local.sh                # Run without Docker (sync endpoints only)
+
+  tests/                        # pytest test suite (57 tests)
+    test_api.py                 # API, graph, hypergraph, pipeline tests
 ```
 
 ## Architecture & Data Flow
@@ -136,6 +186,25 @@ Columns include: `t, vx, vy, Vx, Vy, Vr, Dx, Dy, theta_rad, oz_rad, au, av, Ax, 
 | `KinematicsTwo` | `kinematicstwo.py` | Two vehicle pre-impact motion |
 | `Project` | `project.py` | Project directory creation, pickle save/load |
 
+## PycrashAI Platform
+
+The `pycrash_ai/` directory contains the AI-powered reconstruction platform built on top of the core pycrash simulation engine.
+
+### Quick Start
+```bash
+cd pycrash_ai/docker
+docker compose up --build
+# Open http://localhost:8100/docs
+```
+
+### Architecture
+- **FastAPI** REST API with sync/async simulation endpoints
+- **6-layer hypergraph** case store (entity, temporal, spatial, evidence, causal, physical)
+- **Dual LLM provider** abstraction (Anthropic Claude + OpenAI GPT)
+- **Dual-path document ingestion** (text extraction + vision for scanned PDFs)
+- **FalkorDB** graph database (Docker) with in-memory fallback (testing)
+- **Celery + Redis** for async simulation and Monte Carlo jobs
+
 ## Build & Run
 
 ```bash
@@ -156,8 +225,14 @@ jupyter notebook projects/pycrash\ demo/notebooks/
 ## Testing
 
 ```bash
-# Run all tests (137 tests)
+# Run core tests (137 tests)
 python -m pytest tests/ -v
+
+# Run pycrash_ai tests (57 tests)
+python -m pytest pycrash_ai/tests/ -v
+
+# Run all tests (194 total)
+python -m pytest tests/ pycrash_ai/tests/ -v
 
 # Run specific test modules
 python -m pytest tests/test_ar.py        # AR equations

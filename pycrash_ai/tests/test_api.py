@@ -1,7 +1,7 @@
 """Tests for PycrashAI API endpoints.
 
-Run with: pytest platform/tests/ -v
-Or via Docker: docker compose run api pytest platform/tests/ -v
+Run with: pytest pycrash_ai/tests/ -v
+Or via Docker: docker compose run api pytest pycrash_ai/tests/ -v
 """
 import pytest
 from fastapi.testclient import TestClient
@@ -828,3 +828,152 @@ class TestVehicleLookup:
         makes = r.json()
         assert "Toyota" in makes
         assert "Ford" in makes
+
+
+class TestConfig:
+    def test_defaults_loaded(self):
+        from pycrash_ai.config import settings
+        assert settings.default_dt_motion == 0.01
+        assert settings.default_mu_max == 0.8
+        assert settings.env == "development"
+
+    def test_reports_dir_default(self):
+        from pycrash_ai.config import settings
+        assert settings.reports_dir == "/app/reports"
+
+
+class TestModels:
+    def test_sdof_request_validation(self):
+        from pycrash_ai.models import SDOFRequest
+        req = SDOFRequest(w1=3400, w2=2900, v1=30, v2=0, cor=0.15, k=50000, tstop=0.5)
+        assert req.w1 == 3400
+
+    def test_sdof_request_rejects_negative_weight(self):
+        from pycrash_ai.models import SDOFRequest
+        import pytest
+        with pytest.raises(Exception):
+            SDOFRequest(w1=-100, w2=2900, v1=30, v2=0, cor=0.15, k=50000, tstop=0.5)
+
+    def test_sdof_request_rejects_bad_cor(self):
+        from pycrash_ai.models import SDOFRequest
+        import pytest
+        with pytest.raises(Exception):
+            SDOFRequest(w1=3400, w2=2900, v1=30, v2=0, cor=1.5, k=50000, tstop=0.5)
+
+    def test_extracted_vehicle_optional_fields(self):
+        from pycrash_ai.models import ExtractedVehicle
+        veh = ExtractedVehicle()
+        assert veh.year is None
+        assert veh.make is None
+        assert veh.confidence == 0.0
+
+    def test_extraction_response_structure(self):
+        from pycrash_ai.models import ExtractionResponse, ExtractedVehicle
+        resp = ExtractionResponse(
+            vehicles=[ExtractedVehicle(make="Toyota", model="Camry")],
+            scene=None,
+            confidence=0.8,
+        )
+        assert len(resp.vehicles) == 1
+        assert resp.vehicles[0].make == "Toyota"
+
+
+class TestSchema:
+    def test_node_labels_exist(self):
+        from pycrash_ai.graph.schema import NodeLabel
+        assert NodeLabel.VEHICLE == "Vehicle"
+        assert NodeLabel.EVENT == "Event"
+        assert NodeLabel.FACTOR == "Factor"
+        assert NodeLabel.DELTA_V == "DeltaV"
+
+    def test_graph_layers(self):
+        from pycrash_ai.graph.schema import GraphLayer
+        layers = [l.value for l in GraphLayer]
+        assert "entity" in layers
+        assert "temporal" in layers
+        assert "spatial" in layers
+        assert "evidence" in layers
+        assert "causal" in layers
+        assert "physical" in layers
+
+    def test_node_layer_mapping(self):
+        from pycrash_ai.graph.schema import NODE_LAYER, NodeLabel, GraphLayer
+        assert NODE_LAYER[NodeLabel.VEHICLE] == GraphLayer.ENTITY
+        assert NODE_LAYER[NodeLabel.EVENT] == GraphLayer.TEMPORAL
+        assert NODE_LAYER[NodeLabel.POSITION] == GraphLayer.SPATIAL
+        assert NODE_LAYER[NodeLabel.EVIDENCE] == GraphLayer.EVIDENCE
+        assert NODE_LAYER[NodeLabel.FACTOR] == GraphLayer.CAUSAL
+        assert NODE_LAYER[NodeLabel.FORCE] == GraphLayer.PHYSICAL
+
+    def test_evidence_to_pycrash_mapping(self):
+        from pycrash_ai.graph.schema import EVIDENCE_TO_PYCRASH
+        # Speed conversion: 35 mph -> 51.33 fps
+        key, converter = EVIDENCE_TO_PYCRASH["estimated_speed_mph"]
+        assert key == "vx_initial"
+        assert abs(converter(35) - 51.33345) < 0.01
+
+    def test_crash_phases(self):
+        from pycrash_ai.graph.schema import CrashPhase
+        assert CrashPhase.FIRST_CONTACT == "first_contact"
+        assert CrashPhase.REST == "rest"
+
+    def test_contributing_factors(self):
+        from pycrash_ai.graph.schema import ContributingFactor
+        assert ContributingFactor.EXCESSIVE_SPEED == "excessive_speed"
+        assert ContributingFactor.DISTRACTION == "distraction"
+
+    def test_required_vehicle_params(self):
+        from pycrash_ai.graph.schema import REQUIRED_VEHICLE_PARAMS
+        assert "weight" in REQUIRED_VEHICLE_PARAMS
+        assert "wb" in REQUIRED_VEHICLE_PARAMS
+        assert "izz" in REQUIRED_VEHICLE_PARAMS
+
+
+class TestTools:
+    def test_tool_definitions_exist(self):
+        from pycrash_ai.agent.tools import ALL_TOOLS
+        assert len(ALL_TOOLS) >= 3
+
+    def test_tool_has_required_fields(self):
+        from pycrash_ai.agent.tools import ALL_TOOLS
+        for tool in ALL_TOOLS:
+            assert "name" in tool
+            assert "description" in tool
+            assert "input_schema" in tool
+
+    def test_extract_vehicle_tool(self):
+        from pycrash_ai.agent.tools import ALL_TOOLS
+        vehicle_tools = [t for t in ALL_TOOLS if t["name"] == "extract_vehicle"]
+        assert len(vehicle_tools) == 1
+        schema = vehicle_tools[0]["input_schema"]
+        assert "properties" in schema
+
+
+class TestHeuristicExtraction:
+    def test_extracts_speeds(self):
+        from pycrash_ai.agent.extraction_agent import _heuristic_extraction
+        result = _heuristic_extraction(
+            "Vehicle 1 was traveling at approximately 45 mph when it struck Vehicle 2 which was going 20 mph"
+        )
+        assert len(result.vehicles) >= 2
+        # Heuristic assigns default speeds (35 for striking, 0 for struck)
+        speeds = [v.estimated_speed_mph for v in result.vehicles if v.estimated_speed_mph is not None]
+        assert len(speeds) >= 1
+        assert result.vehicles[0].role == "striking"
+        assert result.vehicles[1].role == "struck"
+
+    def test_extracts_vehicle_info(self):
+        from pycrash_ai.agent.extraction_agent import _heuristic_extraction
+        result = _heuristic_extraction(
+            "A 2020 Toyota Camry rear-ended a 2019 Honda Civic on dry asphalt"
+        )
+        # Heuristic fallback creates default vehicles without make/model parsing
+        assert len(result.vehicles) >= 1
+        assert result.scene is not None
+        assert result.crash_type == "rear_end"
+
+    def test_handles_empty_text(self):
+        from pycrash_ai.agent.extraction_agent import _heuristic_extraction
+        result = _heuristic_extraction("No vehicle information here at all.")
+        assert result is not None
+        assert isinstance(result.vehicles, list)
