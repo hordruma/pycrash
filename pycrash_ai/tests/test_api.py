@@ -316,7 +316,7 @@ class TestCaseGraph:
 
         export = case.export()
         assert export["format"] == "pycrash_case"
-        assert export["version"] == "1.0"
+        assert export["version"] == "2.0"
         assert export["case_id"] == "test-006"
         assert len(export["vehicles"]) == 1
         assert len(export["evidence"]) == 1
@@ -330,6 +330,218 @@ class TestCaseGraph:
         cases = store.list_cases()
         assert "case-a" in cases
         assert "case-b" in cases
+
+
+class TestHypergraphLayers:
+    """Test all 6 hypergraph layers and cross-layer queries."""
+
+    def _make_case(self):
+        from pycrash_ai.api.graph.store import InMemoryCaseStore
+        store = InMemoryCaseStore()
+        case = store.create_case("hyper-001", title="Full Hypergraph Test")
+        case.add_scene()
+        return case
+
+    def test_entity_layer_drivers(self):
+        case = self._make_case()
+        case.add_vehicle(1, "Toyota", "Camry", 2020, role="striking")
+        case.add_driver(1, "John Doe", 35, impairment="none")
+        drivers = case.get_drivers()
+        assert len(drivers) == 1
+        assert drivers[0]["name"] == "John Doe"
+
+    def test_temporal_layer_events_and_phases(self):
+        case = self._make_case()
+        case.add_vehicle(1, "Toyota", "Camry", 2020)
+        pid = case.add_phase("pre_impact", t_start=-2.0, t_end=0.0)
+        eid1 = case.add_event("brake_application", "V1 brakes", t=-1.5, phase="pre_impact")
+        eid2 = case.add_event("first_contact", "Impact", t=0.0)
+        case.order_events(eid1, eid2)
+
+        timeline = case.get_timeline()
+        assert len(timeline) == 2
+        assert timeline[0]["t"] == -1.5
+        assert timeline[1]["t"] == 0.0
+
+        phase_events = case.get_events_for_phase("pre_impact")
+        assert len(phase_events) == 1
+        assert phase_events[0]["event_type"] == "brake_application"
+
+    def test_spatial_layer_positions_and_impact(self):
+        case = self._make_case()
+        v1 = case.add_vehicle(1, "Toyota", "Camry", 2020)
+        v2 = case.add_vehicle(2, "Honda", "Civic", 2019)
+
+        case.add_position(10.0, 20.0, heading=90, entity_id=v1, t=-1.0)
+        case.add_position(15.0, 20.0, heading=90, entity_id=v1, t=0.0)
+        case.add_impact_point(15.0, 20.0, v1, v2)
+
+        positions = case.get_positions_for_entity(v1)
+        assert len(positions) == 2
+        assert positions[0]["x"] == 10.0
+
+        impact_points = case.get_impact_points()
+        assert len(impact_points) == 1
+        assert impact_points[0]["x"] == 15.0
+
+    def test_spatial_layer_trajectory(self):
+        case = self._make_case()
+        v1 = case.add_vehicle(1, "Toyota", "Camry", 2020)
+        traj_id = case.add_trajectory(v1, [
+            {"x": 0, "y": 0, "heading": 90, "t": -2.0},
+            {"x": 5, "y": 0, "heading": 90, "t": -1.0},
+            {"x": 10, "y": 0, "heading": 90, "t": 0.0},
+        ])
+        assert traj_id.startswith("hyper-001_traj_")
+        positions = case.get_positions_for_entity(v1)
+        assert len(positions) == 3
+
+    def test_causal_layer_factors_and_chain(self):
+        case = self._make_case()
+        case.add_vehicle(1, "Toyota", "Camry", 2020)
+        eid = case.add_event("first_contact", "Impact", t=0.0)
+        f1 = case.add_factor("distraction", "Phone use", severity=0.9)
+        f2 = case.add_factor("excessive_speed", "15 over limit", severity=0.7)
+        case.link_factor_to_event(f1, eid)
+        case.link_factor_to_factor(f1, f2)  # distraction contributed to speed
+
+        factors = case.get_factors()
+        assert len(factors) == 2
+
+        chain = case.get_causal_chain()
+        distraction = [f for f in chain if f["factor_type"] == "distraction"][0]
+        assert len(distraction["contributed_to"]) == 1
+        assert len(distraction["caused_events"]) == 1
+
+    def test_causal_layer_evidence_support(self):
+        case = self._make_case()
+        case.add_vehicle(1, "Toyota", "Camry", 2020)
+        f1 = case.add_factor("excessive_speed", severity=0.8)
+        ev1 = case.add_evidence("speed", "estimated_speed_mph", 65, "mph",
+                                confidence=0.7, applies_to_vehicle=1)
+        case.link_factor_to_evidence(f1, ev1)
+
+        supporting = case.get_evidence_supporting_factor(f1)
+        assert len(supporting) == 1
+
+    def test_physical_layer_delta_v(self):
+        case = self._make_case()
+        case.add_vehicle(1, "Toyota", "Camry", 2020)
+        case.add_delta_v(1, dvx=-15.2, dvy=2.1, magnitude_mph=10.5)
+
+        phys = case.get_physical_for_vehicle(1)
+        assert len(phys["delta_v"]) == 1
+        assert phys["delta_v"][0]["dvx"] == -15.2
+        assert phys["delta_v"][0]["magnitude_mph"] == 10.5
+
+    def test_physical_layer_force_and_crush(self):
+        case = self._make_case()
+        case.add_vehicle(1, "Toyota", "Camry", 2020)
+        case.add_force(50000, direction=180, vehicle_number=1)
+        case.add_crush(1, depth=1.5, width=4.0, profile=[0.5, 1.0, 1.5, 1.0, 0.5])
+        case.add_energy(150000, unit="ft-lb", vehicle_number=1)
+
+        phys = case.get_physical_for_vehicle(1)
+        assert len(phys["forces"]) == 1
+        assert len(phys["crush"]) == 1
+        assert len(phys["energy"]) == 1
+        assert phys["crush"][0]["profile"] == [0.5, 1.0, 1.5, 1.0, 0.5]
+
+    def test_cross_layer_full_timeline(self):
+        case = self._make_case()
+        v1 = case.add_vehicle(1, "Toyota", "Camry", 2020)
+        eid = case.add_event("first_contact", "Impact", t=0.0)
+
+        # Link across layers
+        case.link_entity_to_event(v1, eid)
+        pos_id = case.add_position(15.0, 20.0, entity_id=v1, event_id=eid, t=0.0)
+        f1 = case.add_factor("excessive_speed", severity=0.8)
+        case.link_factor_to_event(f1, eid)
+        dv_id = case.add_delta_v(1, dvx=-15.2, dvy=0.0, event_id=eid)
+
+        full = case.get_full_timeline()
+        assert len(full) == 1
+        event = full[0]
+        assert len(event["participants"]) == 1
+        assert len(event["positions"]) == 1
+        assert len(event["factors"]) == 1
+        assert len(event["physical_outcomes"]) == 1
+
+    def test_cross_layer_causal_trace(self):
+        case = self._make_case()
+        case.add_vehicle(1, "Toyota", "Camry", 2020)
+        eid = case.add_event("first_contact", "Impact", t=0.0)
+        f1 = case.add_factor("distraction", severity=0.9)
+        case.link_factor_to_event(f1, eid)
+        dv_id = case.add_delta_v(1, dvx=-15.2, dvy=0.0, event_id=eid)
+
+        trace = case.trace_causal_chain(f1)
+        assert trace["factor_type"] == "distraction"
+        assert len(trace["chain"]) == 1
+        assert len(trace["chain"][0]["physical_outcomes"]) == 1
+
+    def test_layer_summary(self):
+        case = self._make_case()
+        case.add_vehicle(1, "Toyota", "Camry", 2020)
+        case.add_event("first_contact", t=0.0)
+        case.add_position(10, 20)
+        case.add_factor("excessive_speed")
+        case.add_delta_v(1, dvx=-15, dvy=0)
+        case.add_evidence("speed", "estimated_speed_mph", 35, applies_to_vehicle=1)
+
+        summary = case.get_layer_summary()
+        assert summary["total_nodes"] > 5
+        assert summary["layers"]["entity"]["node_count"] >= 2  # case + vehicle
+        assert summary["layers"]["temporal"]["node_count"] == 1
+        assert summary["layers"]["spatial"]["node_count"] == 1
+        assert summary["layers"]["causal"]["node_count"] == 1
+        assert summary["layers"]["physical"]["node_count"] == 1
+
+    def test_export_v2_full_hypergraph(self):
+        case = self._make_case()
+        case.add_vehicle(1, "Toyota", "Camry", 2020, role="striking")
+        case.add_driver(1, "John Doe", 35)
+        case.add_event("first_contact", t=0.0)
+        case.add_factor("excessive_speed", severity=0.8)
+        case.add_delta_v(1, dvx=-15, dvy=0)
+        case.add_evidence("speed", "estimated_speed_mph", 35, applies_to_vehicle=1)
+
+        export = case.export()
+        assert export["format"] == "pycrash_case"
+        assert export["version"] == "2.0"
+        assert len(export["vehicles"]) == 1
+        assert len(export["drivers"]) == 1
+        assert len(export["timeline"]) == 1
+        assert len(export["factors"]) == 1
+        assert "physical" in export
+        assert "_nodes" in export  # raw graph for reimport
+        assert "_edges" in export
+
+    def test_import_v2_crash_file(self):
+        import tempfile
+        from pycrash_ai.api.graph.store import InMemoryCaseStore, InMemoryCaseGraph
+
+        store = InMemoryCaseStore()
+        case = store.create_case("export-test", "Export Test")
+        case.add_scene()
+        case.add_vehicle(1, "Toyota", "Camry", 2020)
+        case.add_event("first_contact", t=0.0)
+        case.add_factor("distraction", severity=0.9)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".crash", delete=False) as f:
+            import json
+            json.dump(case.export(), f)
+            tmp = f.name
+
+        store2 = InMemoryCaseStore()
+        reimported = InMemoryCaseGraph.import_crash_file(tmp, store2)
+        assert reimported.case_id == "export-test"
+        assert len(reimported.get_vehicles()) == 1
+        assert len(reimported.get_timeline()) == 1
+        assert len(reimported.get_factors()) == 1
+
+        import os
+        os.unlink(tmp)
 
 
 class TestCaseAPI:
@@ -437,6 +649,137 @@ class TestCaseAPI:
 
         r = client.get("/api/v1/cases/nonexistent")
         assert r.status_code == 404
+
+
+class TestHypergraphAPI:
+    """Test hypergraph API endpoints — all 6 layers via HTTP."""
+
+    def _reset(self):
+        from pycrash_ai.api.routes import cases
+        cases._store = None
+
+    def test_temporal_api(self):
+        self._reset()
+        client.post("/api/v1/cases", json={"case_id": "hyper-api-001"})
+        client.post("/api/v1/cases/hyper-api-001/vehicles", json={
+            "vehicle_number": 1, "make": "Toyota", "model": "Camry",
+        })
+
+        # Add phase and event
+        r = client.post("/api/v1/cases/hyper-api-001/phases", json={
+            "phase_name": "pre_impact", "t_start": -2.0, "t_end": 0.0,
+        })
+        assert r.status_code == 200
+
+        r = client.post("/api/v1/cases/hyper-api-001/events", json={
+            "event_type": "brake_application", "description": "V1 brakes",
+            "t": -1.5, "phase": "pre_impact",
+        })
+        assert r.status_code == 200
+        assert "event_id" in r.json()
+
+        r = client.get("/api/v1/cases/hyper-api-001/timeline")
+        assert r.status_code == 200
+        assert len(r.json()) == 1
+
+    def test_spatial_api(self):
+        self._reset()
+        client.post("/api/v1/cases", json={"case_id": "hyper-api-002"})
+        client.post("/api/v1/cases/hyper-api-002/vehicles", json={
+            "vehicle_number": 1, "make": "Toyota", "model": "Camry",
+        })
+        client.post("/api/v1/cases/hyper-api-002/vehicles", json={
+            "vehicle_number": 2, "make": "Honda", "model": "Civic",
+        })
+
+        r = client.post("/api/v1/cases/hyper-api-002/impact-points", json={
+            "x": 15.0, "y": 20.0, "vehicle1_number": 1, "vehicle2_number": 2,
+        })
+        assert r.status_code == 200
+        assert "impact_point_id" in r.json()
+
+        r = client.get("/api/v1/cases/hyper-api-002/impact-points")
+        assert r.status_code == 200
+        assert len(r.json()) == 1
+
+    def test_causal_api(self):
+        self._reset()
+        client.post("/api/v1/cases", json={"case_id": "hyper-api-003"})
+
+        r = client.post("/api/v1/cases/hyper-api-003/factors", json={
+            "factor_type": "excessive_speed", "description": "15 over limit",
+            "severity": 0.8,
+        })
+        assert r.status_code == 200
+        fid = r.json()["factor_id"]
+
+        r = client.get("/api/v1/cases/hyper-api-003/factors")
+        assert r.status_code == 200
+        assert len(r.json()) == 1
+        assert r.json()[0]["factor_type"] == "excessive_speed"
+
+    def test_physical_api(self):
+        self._reset()
+        client.post("/api/v1/cases", json={"case_id": "hyper-api-004"})
+        client.post("/api/v1/cases/hyper-api-004/vehicles", json={
+            "vehicle_number": 1, "make": "Toyota", "model": "Camry",
+        })
+
+        r = client.post("/api/v1/cases/hyper-api-004/delta-v", json={
+            "vehicle_number": 1, "dvx": -15.2, "dvy": 2.1,
+            "magnitude_mph": 10.5,
+        })
+        assert r.status_code == 200
+
+        r = client.post("/api/v1/cases/hyper-api-004/crush", json={
+            "vehicle_number": 1, "depth": 1.5, "width": 4.0,
+            "profile": [0.5, 1.0, 1.5, 1.0, 0.5],
+        })
+        assert r.status_code == 200
+
+        r = client.get("/api/v1/cases/hyper-api-004/physical/1")
+        assert r.status_code == 200
+        phys = r.json()
+        assert len(phys["delta_v"]) == 1
+        assert len(phys["crush"]) == 1
+
+    def test_layers_summary_api(self):
+        self._reset()
+        client.post("/api/v1/cases", json={"case_id": "hyper-api-005"})
+        client.post("/api/v1/cases/hyper-api-005/vehicles", json={
+            "vehicle_number": 1, "make": "Toyota", "model": "Camry",
+        })
+        client.post("/api/v1/cases/hyper-api-005/events", json={
+            "event_type": "first_contact", "t": 0.0,
+        })
+        client.post("/api/v1/cases/hyper-api-005/factors", json={
+            "factor_type": "distraction", "severity": 0.9,
+        })
+
+        r = client.get("/api/v1/cases/hyper-api-005/layers")
+        assert r.status_code == 200
+        layers = r.json()
+        assert "total_nodes" in layers
+        assert "entity" in layers["layers"]
+        assert "temporal" in layers["layers"]
+        assert "causal" in layers["layers"]
+
+    def test_driver_api(self):
+        self._reset()
+        client.post("/api/v1/cases", json={"case_id": "hyper-api-006"})
+        client.post("/api/v1/cases/hyper-api-006/vehicles", json={
+            "vehicle_number": 1, "make": "Ford", "model": "F-150",
+        })
+
+        r = client.post("/api/v1/cases/hyper-api-006/drivers", json={
+            "vehicle_number": 1, "name": "Jane Smith", "age": 42,
+        })
+        assert r.status_code == 200
+
+        r = client.get("/api/v1/cases/hyper-api-006/drivers")
+        assert r.status_code == 200
+        assert len(r.json()) == 1
+        assert r.json()[0]["name"] == "Jane Smith"
 
 
 class TestPipelineWithGraph:
