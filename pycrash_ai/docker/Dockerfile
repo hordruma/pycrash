@@ -23,4 +23,10 @@ RUN pip install --no-cache-dir ".[dev,ai]"
 # Copy platform code
 COPY pycrash_ai/ pycrash_ai/
 
+# Run as non-root user
+RUN useradd --create-home appuser \
+    && mkdir -p /app/reports \
+    && chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 8000
