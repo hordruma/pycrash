@@ -222,6 +222,19 @@ async def get_case(case_id: str):
     }
 
 
+@router.delete("/{case_id}")
+async def delete_case(case_id: str):
+    """Delete a case."""
+    store = _get_store()
+    if hasattr(store, "delete_case"):
+        store.delete_case(case_id)
+    elif hasattr(store, "_cases"):
+        store._cases.pop(case_id, None)
+    else:
+        raise HTTPException(404, f"Cannot delete case {case_id}")
+    return {"deleted": case_id}
+
+
 # ===================================================================
 # ENTITY LAYER
 # ===================================================================

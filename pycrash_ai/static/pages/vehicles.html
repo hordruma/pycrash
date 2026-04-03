@@ -1,0 +1,170 @@
+<div x-data="vehiclesApp()" x-init="loadMakes()">
+  <!-- Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">Vehicle Database</h1>
+    <p class="mt-1 text-gray-500">Browse and search vehicle specifications</p>
+  </div>
+
+  <!-- Search Card -->
+  <div class="bg-white rounded-lg shadow p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">
+      <i class="fas fa-search text-gray-500 mr-2"></i>Search Vehicles
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
+        <input type="number" x-model="year" placeholder="e.g. 2020"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Make</label>
+        <select x-model="make"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
+          <option value="">All Makes</option>
+          <template x-for="m in makes" :key="m">
+            <option :value="m" x-text="m"></option>
+          </template>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Model</label>
+        <input type="text" x-model="model" placeholder="e.g. Camry"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <button @click="search()"
+              class="px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+        <i class="fas fa-search mr-2"></i>Search
+      </button>
+      <button @click="year = ''; make = ''; model = ''; results = []; error = null"
+              class="px-6 py-2.5 bg-white text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
+        <i class="fas fa-times mr-2"></i>Clear
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div x-show="loading" class="flex items-center justify-center py-12">
+    <div class="flex items-center space-x-3">
+      <i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
+      <span class="text-gray-600 text-lg">Searching vehicles...</span>
+    </div>
+  </div>
+
+  <!-- Error Alert -->
+  <div x-show="error" x-cloak
+       class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start">
+    <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-3"></i>
+    <span class="text-red-700" x-text="error"></span>
+  </div>
+
+  <!-- Results -->
+  <div x-show="results.length > 0" x-cloak>
+    <p class="text-sm text-gray-600 mb-4">
+      <i class="fas fa-list mr-1"></i>Found <span class="font-semibold" x-text="results.length"></span> vehicles
+    </p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <template x-for="v in results" :key="v.year + '-' + v.make + '-' + v.model">
+        <div class="bg-white rounded-lg shadow hover:shadow-md transition-shadow border border-gray-100">
+          <!-- Card Header -->
+          <div class="p-5 border-b border-gray-100">
+            <div class="flex items-start justify-between">
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900">
+                  <span x-text="v.year"></span>
+                  <span x-text="v.make"></span>
+                  <span x-text="v.model"></span>
+                </h3>
+              </div>
+              <div class="flex gap-1">
+                <span x-show="v.fwd"
+                      class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">FWD</span>
+                <span x-show="v.rwd"
+                      class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">RWD</span>
+                <span x-show="v.awd"
+                      class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">AWD</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Specs Grid -->
+          <div class="p-5">
+            <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-500">Weight</span>
+                <span class="font-medium text-gray-900" x-text="v.weight ? v.weight.toLocaleString() + ' lb' : '--'"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Wheelbase</span>
+                <span class="font-medium text-gray-900" x-text="v.wb ? v.wb + ' in' : '--'"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Width</span>
+                <span class="font-medium text-gray-900" x-text="v.width ? v.width + ' in' : '--'"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Length</span>
+                <span class="font-medium text-gray-900" x-text="v.length ? v.length + ' in' : '--'"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">CG Height</span>
+                <span class="font-medium text-gray-900" x-text="v.hcg ? v.hcg + ' in' : '--'"></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Track</span>
+                <span class="font-medium text-gray-900" x-text="v.track ? v.track + ' in' : '--'"></span>
+              </div>
+              <div class="col-span-2 flex justify-between">
+                <span class="text-gray-500">Izz</span>
+                <span class="font-medium text-gray-900" x-text="v.izz ? v.izz.toLocaleString() + ' lb-ft-s²' : '--'"></span>
+              </div>
+            </div>
+
+            <!-- Stiffness Values -->
+            <div class="mt-4 pt-4 border-t border-gray-100">
+              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Stiffness</p>
+              <div class="grid grid-cols-3 gap-2 text-sm">
+                <div class="text-center bg-gray-50 rounded px-2 py-1.5">
+                  <span class="block text-xs text-gray-500">A</span>
+                  <span class="font-medium text-gray-900" x-text="v.A != null ? v.A : '--'"></span>
+                </div>
+                <div class="text-center bg-gray-50 rounded px-2 py-1.5">
+                  <span class="block text-xs text-gray-500">B</span>
+                  <span class="font-medium text-gray-900" x-text="v.B != null ? v.B : '--'"></span>
+                </div>
+                <div class="text-center bg-gray-50 rounded px-2 py-1.5">
+                  <span class="block text-xs text-gray-500">k</span>
+                  <span class="font-medium text-gray-900" x-text="v.k != null ? v.k : '--'"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Footer -->
+          <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 rounded-b-lg flex items-center justify-between">
+            <span x-show="v.source"
+                  class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-700"
+                  x-text="v.source"></span>
+            <span x-show="!v.source"></span>
+            <button @click="selectVehicle(v); $dispatch('navigate', { page: 'simulator' })"
+                    class="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+              <i class="fas fa-arrow-right mr-1"></i>Use in Simulator
+            </button>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div x-show="!loading && results.length === 0 && !error" x-cloak
+       class="flex flex-col items-center justify-center py-16 text-center">
+    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+      <i class="fas fa-car text-2xl text-gray-400"></i>
+    </div>
+    <h3 class="text-lg font-medium text-gray-700 mb-1">No vehicles to display</h3>
+    <p class="text-gray-500 text-sm">Search for vehicles by year, make, or model</p>
+  </div>
+</div>
