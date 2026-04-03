@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from pycrash_ai.api.models import SDOFRequest, SimulationStatus
+from pycrash_ai.models import SDOFRequest, SimulationStatus
 
 router = APIRouter()
 
@@ -12,7 +12,7 @@ router = APIRouter()
 def start_sdof_simulation(req: SDOFRequest):
     """Queue an SDOF crash simulation (requires Celery + Redis)."""
     try:
-        from pycrash_ai.api.tasks.simulation_tasks import run_sdof_simulation
+        from pycrash_ai.tasks.simulation_tasks import run_sdof_simulation
         task = run_sdof_simulation.delay(req.model_dump())
         return SimulationStatus(job_id=task.id, status="queued")
     except ImportError:

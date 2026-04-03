@@ -8,8 +8,8 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException
 
-from pycrash_ai.api.models import ReportRequest, ReportResponse
-from pycrash_ai.api.config import settings
+from pycrash_ai.models import ReportRequest, ReportResponse
+from pycrash_ai.config import settings
 
 router = APIRouter()
 

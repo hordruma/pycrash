@@ -1,6 +1,6 @@
 #!/bin/bash
 # Run PycrashAI locally without Docker (for quick testing)
-# Usage: ./platform/run_local.sh
+# Usage: ./pycrash_ai/scripts/run_local.sh
 #
 # This starts the FastAPI server directly. No Redis/Celery needed
 # for sync endpoints (/simulate/sdof/sync, /extract, /vehicles/lookup).
@@ -8,7 +8,7 @@
 
 set -e
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 echo "=== PycrashAI Local Dev Server ==="
 echo ""
@@ -24,4 +24,4 @@ echo ""
 pip install -e "." -q 2>/dev/null
 pip install fastapi uvicorn python-multipart pydantic -q 2>/dev/null
 
-uvicorn pycrash_ai.api.main:app --host 0.0.0.0 --port 8100 --reload
+uvicorn pycrash_ai.app:app --host 0.0.0.0 --port 8100 --reload

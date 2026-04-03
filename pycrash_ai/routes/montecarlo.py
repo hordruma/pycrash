@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from pycrash_ai.api.models import MonteCarloRequest, MonteCarloStatus
+from pycrash_ai.models import MonteCarloRequest, MonteCarloStatus
 
 router = APIRouter()
 
@@ -12,7 +12,7 @@ router = APIRouter()
 def start_montecarlo(req: MonteCarloRequest):
     """Queue a Monte Carlo analysis (requires Celery + Redis)."""
     try:
-        from pycrash_ai.api.tasks.simulation_tasks import run_montecarlo
+        from pycrash_ai.tasks.simulation_tasks import run_montecarlo
         task = run_montecarlo.delay(
             base_params=req.base_config.model_dump(),
             variations=[v.model_dump() for v in req.variations],

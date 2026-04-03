@@ -29,15 +29,15 @@ import json
 import os
 from typing import Any, Dict, List, Optional
 
-from pycrash_ai.api.graph.schema import (
+from pycrash_ai.graph.schema import (
     GraphLayer, NodeLabel, EVIDENCE_TO_PYCRASH,
 )
-from pycrash_ai.api.graph.layers.entity import EntityLayerMixin
-from pycrash_ai.api.graph.layers.temporal import TemporalLayerMixin
-from pycrash_ai.api.graph.layers.spatial import SpatialLayerMixin
-from pycrash_ai.api.graph.layers.evidence import EvidenceLayerMixin
-from pycrash_ai.api.graph.layers.causal import CausalLayerMixin
-from pycrash_ai.api.graph.layers.physical import PhysicalLayerMixin
+from pycrash_ai.graph.layers.entity import EntityLayerMixin
+from pycrash_ai.graph.layers.temporal import TemporalLayerMixin
+from pycrash_ai.graph.layers.spatial import SpatialLayerMixin
+from pycrash_ai.graph.layers.evidence import EvidenceLayerMixin
+from pycrash_ai.graph.layers.causal import CausalLayerMixin
+from pycrash_ai.graph.layers.physical import PhysicalLayerMixin
 
 
 # ===================================================================

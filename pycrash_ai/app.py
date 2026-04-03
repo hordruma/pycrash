@@ -6,8 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 
-from pycrash_ai.api.routes import simulate, extract, montecarlo, report, vehicles, pipeline, cases
-from pycrash_ai.api.config import settings
+from pycrash_ai.routes import simulate, extract, montecarlo, report, vehicles, pipeline, cases
+from pycrash_ai.config import settings
 
 app = FastAPI(
     title="PycrashAI",

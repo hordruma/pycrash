@@ -1,6 +1,6 @@
 """Celery worker configuration."""
 from celery import Celery
-from pycrash_ai.api.config import settings
+from pycrash_ai.config import settings
 
 app = Celery(
     "pycrash_worker",

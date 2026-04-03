@@ -11,9 +11,9 @@ from typing import Optional
 
 from fastapi import APIRouter, File, Header, UploadFile
 
-from pycrash_ai.api.models import ExtractionRequest, ExtractionResponse
-from pycrash_ai.api.agent.extraction_agent import extract_from_text, extract_from_document
-from pycrash_ai.api.agent.ingest import ingest_pdf, ingest_image, ingest_text
+from pycrash_ai.models import ExtractionRequest, ExtractionResponse
+from pycrash_ai.agent.extraction_agent import extract_from_text, extract_from_document
+from pycrash_ai.agent.ingest import ingest_pdf, ingest_image, ingest_text
 
 router = APIRouter()
 

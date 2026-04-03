@@ -6,7 +6,7 @@ Or via Docker: docker compose run api pytest platform/tests/ -v
 import pytest
 from fastapi.testclient import TestClient
 
-from pycrash_ai.api.main import app
+from pycrash_ai.app import app
 
 client = TestClient(app)
 
@@ -148,7 +148,7 @@ class TestLLMProvider:
 
     def test_mock_provider(self):
         """Without API keys, should use mock provider."""
-        from pycrash_ai.api.agent.llm_provider import get_provider
+        from pycrash_ai.agent.llm_provider import get_provider
         import os
         # Temporarily clear env vars
         old_anthropic = os.environ.pop("ANTHROPIC_API_KEY", None)
@@ -163,12 +163,12 @@ class TestLLMProvider:
                 os.environ["OPENAI_API_KEY"] = old_openai
 
     def test_provider_selection_anthropic(self):
-        from pycrash_ai.api.agent.llm_provider import get_provider, AnthropicProvider
+        from pycrash_ai.agent.llm_provider import get_provider, AnthropicProvider
         provider = get_provider(provider="anthropic", api_key="sk-ant-test")
         assert isinstance(provider, AnthropicProvider)
 
     def test_provider_selection_openai(self):
-        from pycrash_ai.api.agent.llm_provider import get_provider, OpenAIProvider
+        from pycrash_ai.agent.llm_provider import get_provider, OpenAIProvider
         provider = get_provider(provider="openai", api_key="sk-test")
         assert isinstance(provider, OpenAIProvider)
 
@@ -177,7 +177,7 @@ class TestIngestion:
     """Test document ingestion."""
 
     def test_ingest_text(self):
-        from pycrash_ai.api.agent.ingest import ingest_text
+        from pycrash_ai.agent.ingest import ingest_text
         long_text = "Vehicle 1, a 2020 Toyota Camry, was traveling eastbound on Main Street at approximately 35 mph when it struck Vehicle 2."
         doc = ingest_text(long_text)
         assert long_text in doc.full_text
@@ -185,20 +185,20 @@ class TestIngestion:
         assert doc.text_quality == 1.0
 
     def test_ingest_image(self):
-        from pycrash_ai.api.agent.ingest import ingest_image
+        from pycrash_ai.agent.ingest import ingest_image
         doc = ingest_image(b"\x89PNG\r\n", "scan.png")
         assert doc.needs_vision
         assert len(doc.page_images) == 1
 
     def test_build_text_messages(self):
-        from pycrash_ai.api.agent.ingest import ingest_text, build_extraction_messages
+        from pycrash_ai.agent.ingest import ingest_text, build_extraction_messages
         doc = ingest_text("Vehicle 1 rear-ended Vehicle 2")
         messages = build_extraction_messages(doc)
         assert len(messages) == 1
         assert "Vehicle 1" in messages[0]["content"]
 
     def test_build_vision_messages(self):
-        from pycrash_ai.api.agent.ingest import ingest_image, build_extraction_messages
+        from pycrash_ai.agent.ingest import ingest_image, build_extraction_messages
         doc = ingest_image(b"\x89PNG\r\n", "scan.png")
         messages = build_extraction_messages(doc)
         assert len(messages) == 1
@@ -210,7 +210,7 @@ class TestCaseGraph:
     """Test in-memory case graph operations."""
 
     def test_create_case_and_add_vehicles(self):
-        from pycrash_ai.api.graph.store import InMemoryCaseStore
+        from pycrash_ai.graph.store import InMemoryCaseStore
         store = InMemoryCaseStore()
         case = store.create_case("test-001", title="Test Case")
         case.add_scene()
@@ -223,7 +223,7 @@ class TestCaseGraph:
         assert vehicles[1]["role"] == "struck"
 
     def test_add_evidence_and_retrieve(self):
-        from pycrash_ai.api.graph.store import InMemoryCaseStore
+        from pycrash_ai.graph.store import InMemoryCaseStore
         store = InMemoryCaseStore()
         case = store.create_case("test-002")
         case.add_vehicle(1, "Ford", "F-150", 2021)
@@ -244,7 +244,7 @@ class TestCaseGraph:
         assert any(e["key"] == "weight" for e in evidence)
 
     def test_find_gaps(self):
-        from pycrash_ai.api.graph.store import InMemoryCaseStore
+        from pycrash_ai.graph.store import InMemoryCaseStore
         store = InMemoryCaseStore()
         case = store.create_case("test-003")
         case.add_vehicle(1, "Toyota", "Camry", 2020)
@@ -262,7 +262,7 @@ class TestCaseGraph:
         assert "weight" not in gaps[0]["missing"]
 
     def test_find_contradictions(self):
-        from pycrash_ai.api.graph.store import InMemoryCaseStore
+        from pycrash_ai.graph.store import InMemoryCaseStore
         store = InMemoryCaseStore()
         case = store.create_case("test-004")
         case.add_vehicle(1, "Toyota", "Camry", 2020)
@@ -282,7 +282,7 @@ class TestCaseGraph:
         assert contradictions[0]["key"] == "estimated_speed_mph"
 
     def test_project_to_pycrash(self):
-        from pycrash_ai.api.graph.store import InMemoryCaseStore
+        from pycrash_ai.graph.store import InMemoryCaseStore
         store = InMemoryCaseStore()
         case = store.create_case("test-005")
         case.add_vehicle(1, "Toyota", "Camry", 2020, role="striking")
@@ -305,7 +305,7 @@ class TestCaseGraph:
         assert inp["striking"] is True
 
     def test_export_and_format(self):
-        from pycrash_ai.api.graph.store import InMemoryCaseStore
+        from pycrash_ai.graph.store import InMemoryCaseStore
         store = InMemoryCaseStore()
         case = store.create_case("test-006", title="Export Test")
         case.add_vehicle(1, "Toyota", "Camry", 2020)
@@ -323,7 +323,7 @@ class TestCaseGraph:
         assert "projection" in export
 
     def test_store_list_cases(self):
-        from pycrash_ai.api.graph.store import InMemoryCaseStore
+        from pycrash_ai.graph.store import InMemoryCaseStore
         store = InMemoryCaseStore()
         store.create_case("case-a")
         store.create_case("case-b")
@@ -336,7 +336,7 @@ class TestHypergraphLayers:
     """Test all 6 hypergraph layers and cross-layer queries."""
 
     def _make_case(self):
-        from pycrash_ai.api.graph.store import InMemoryCaseStore
+        from pycrash_ai.graph.store import InMemoryCaseStore
         store = InMemoryCaseStore()
         case = store.create_case("hyper-001", title="Full Hypergraph Test")
         case.add_scene()
@@ -519,7 +519,7 @@ class TestHypergraphLayers:
 
     def test_import_v2_crash_file(self):
         import tempfile
-        from pycrash_ai.api.graph.store import InMemoryCaseStore, InMemoryCaseGraph
+        from pycrash_ai.graph.store import InMemoryCaseStore, InMemoryCaseGraph
 
         store = InMemoryCaseStore()
         case = store.create_case("export-test", "Export Test")
@@ -549,7 +549,7 @@ class TestCaseAPI:
 
     def test_create_case(self):
         # Reset the store singleton for clean test
-        from pycrash_ai.api.routes import cases
+        from pycrash_ai.routes import cases
         cases._store = None
 
         r = client.post("/api/v1/cases", json={
@@ -562,7 +562,7 @@ class TestCaseAPI:
         assert data["title"] == "API Test Case"
 
     def test_add_vehicle_and_evidence(self):
-        from pycrash_ai.api.routes import cases
+        from pycrash_ai.routes import cases
         cases._store = None
 
         # Create case
@@ -593,7 +593,7 @@ class TestCaseAPI:
         assert data[0]["key"] == "estimated_speed_mph"
 
     def test_gaps_endpoint(self):
-        from pycrash_ai.api.routes import cases
+        from pycrash_ai.routes import cases
         cases._store = None
 
         client.post("/api/v1/cases", json={"case_id": "api-test-003"})
@@ -608,7 +608,7 @@ class TestCaseAPI:
         assert "weight" in gaps[0]["missing"]
 
     def test_export_endpoint(self):
-        from pycrash_ai.api.routes import cases
+        from pycrash_ai.routes import cases
         cases._store = None
 
         client.post("/api/v1/cases", json={"case_id": "api-test-004"})
@@ -623,7 +623,7 @@ class TestCaseAPI:
         assert data["case_id"] == "api-test-004"
 
     def test_project_endpoint(self):
-        from pycrash_ai.api.routes import cases
+        from pycrash_ai.routes import cases
         cases._store = None
 
         client.post("/api/v1/cases", json={"case_id": "api-test-005"})
@@ -644,7 +644,7 @@ class TestCaseAPI:
         assert projection[0]["input_dict"]["striking"] is True
 
     def test_case_not_found(self):
-        from pycrash_ai.api.routes import cases
+        from pycrash_ai.routes import cases
         cases._store = None
 
         r = client.get("/api/v1/cases/nonexistent")
@@ -655,7 +655,7 @@ class TestHypergraphAPI:
     """Test hypergraph API endpoints — all 6 layers via HTTP."""
 
     def _reset(self):
-        from pycrash_ai.api.routes import cases
+        from pycrash_ai.routes import cases
         cases._store = None
 
     def test_temporal_api(self):
@@ -786,7 +786,7 @@ class TestPipelineWithGraph:
     """Test that pipeline now builds a case graph."""
 
     def test_pipeline_builds_graph(self):
-        from pycrash_ai.api.routes import cases
+        from pycrash_ai.routes import cases
         cases._store = None
 
         r = client.post("/api/v1/pipeline", json={

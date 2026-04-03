@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field
 
-from pycrash_ai.api.graph.store import get_store
+from pycrash_ai.graph.store import get_store
 
 router = APIRouter(prefix="/cases", tags=["cases"])
 
@@ -515,7 +515,7 @@ async def import_crash_file(file: UploadFile = File(...)):
         tmp_path = f.name
 
     try:
-        from pycrash_ai.api.graph.store import InMemoryCaseGraph
+        from pycrash_ai.graph.store import InMemoryCaseGraph
         case = InMemoryCaseGraph.import_crash_file(tmp_path, store)
         return {"case_id": case.case_id, "title": case.title}
     except Exception as e:

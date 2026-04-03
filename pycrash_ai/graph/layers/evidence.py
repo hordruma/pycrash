@@ -131,7 +131,7 @@ class EvidenceLayerMixin:
 
     def find_gaps(self) -> list:
         """Find missing parameters needed for simulation."""
-        from pycrash_ai.api.graph.schema import REQUIRED_VEHICLE_PARAMS
+        from pycrash_ai.graph.schema import REQUIRED_VEHICLE_PARAMS
 
         gaps = []
         vehicles = [n for n in self._nodes.values() if n["label"] == "Vehicle"]

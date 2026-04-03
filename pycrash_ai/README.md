@@ -22,14 +22,14 @@ cd pycrash
 
 ### 2. Set up your API key (optional)
 
-Create a file called `.env` in the `pycrash_ai/` folder:
+Create a file called `.env` in the `pycrash_ai/docker/` folder:
 
 ```bash
 # On Mac/Linux:
-echo "ANTHROPIC_API_KEY=sk-ant-your-key-here" > pycrash_ai/.env
+echo "ANTHROPIC_API_KEY=sk-ant-your-key-here" > pycrash_ai/docker/.env
 
 # Or for OpenAI:
-echo "OPENAI_API_KEY=sk-your-key-here" > pycrash_ai/.env
+echo "OPENAI_API_KEY=sk-your-key-here" > pycrash_ai/docker/.env
 ```
 
 Or skip this step entirely -- the system works without AI, just with simpler text extraction.
@@ -37,7 +37,7 @@ Or skip this step entirely -- the system works without AI, just with simpler tex
 ### 3. Start everything
 
 ```bash
-cd pycrash_ai
+cd pycrash_ai/docker
 docker compose up --build
 ```
 
@@ -182,7 +182,7 @@ pip install -e .
 pip install fastapi uvicorn python-multipart pydantic
 
 # Start the server
-uvicorn pycrash_ai.api.main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn pycrash_ai.app:app --host 0.0.0.0 --port 8100 --reload
 ```
 
 This gives you the sync simulation, extraction, vehicle lookup, and case graph endpoints.
@@ -224,10 +224,10 @@ Async simulation (`/simulate/sdof`) and Monte Carlo require the full Docker setu
 
 **"Docker is not running"** -- Open Docker Desktop and wait for it to fully start.
 
-**Port 8000 already in use** -- Something else is using that port. Either stop it or change the port in `docker-compose.yml` (change `"8100:8000"` to `"9000:8000"`, then use `http://localhost:9000`).
+**Port 8100 already in use** -- Something else is using that port. Either stop it or change the port in `docker/docker-compose.yml` (change `"8100:8000"` to `"9000:8000"`, then use `http://localhost:9000`).
 
-**Build fails** -- Make sure you're in the `pycrash_ai/` directory, not the root. Run `docker compose up --build` (not `docker-compose`, note the space).
+**Build fails** -- Make sure you're in the `pycrash_ai/docker/` directory. Run `docker compose up --build` (not `docker-compose`, note the space).
 
 **"Cannot connect to the Docker daemon"** -- Docker Desktop needs to be running. On Linux, you may need `sudo`.
 
-**API key not working** -- Make sure your `.env` file is in the `pycrash_ai/` folder (not the root), and the key format is correct (`ANTHROPIC_API_KEY=sk-ant-...` or `OPENAI_API_KEY=sk-...`).
+**API key not working** -- Make sure your `.env` file is in the `pycrash_ai/docker/` folder, and the key format is correct (`ANTHROPIC_API_KEY=sk-ant-...` or `OPENAI_API_KEY=sk-...`).

@@ -10,13 +10,13 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from pycrash_ai.api.agent.llm_provider import get_provider, LLMResponse
-from pycrash_ai.api.agent.tools import ALL_TOOLS
-from pycrash_ai.api.agent.ingest import (
+from pycrash_ai.agent.llm_provider import get_provider, LLMResponse
+from pycrash_ai.agent.tools import ALL_TOOLS
+from pycrash_ai.agent.ingest import (
     IngestedDocument, ingest_text, ingest_pdf, ingest_image,
     build_extraction_messages, build_openai_messages,
 )
-from pycrash_ai.api.models import ExtractionResponse, ExtractedVehicle, ExtractedScene
+from pycrash_ai.models import ExtractionResponse, ExtractedVehicle, ExtractedScene
 
 
 SYSTEM_PROMPT = """You are a crash reconstruction specialist assistant. Your job is to extract structured data from police crash reports, witness statements, and crash descriptions.

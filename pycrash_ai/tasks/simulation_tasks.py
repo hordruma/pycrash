@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict
 
-from pycrash_ai.api.tasks.worker import app
+from pycrash_ai.tasks.worker import app
 
 
 @app.task(bind=True, name="run_sdof_simulation")

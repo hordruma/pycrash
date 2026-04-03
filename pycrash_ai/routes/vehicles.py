@@ -7,12 +7,12 @@ from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
-from pycrash_ai.api.models import VehicleLookupResponse
+from pycrash_ai.models import VehicleLookupResponse
 
 router = APIRouter()
 
 # Load vehicle database
-_VEHICLE_DB_PATH = os.path.join(os.path.dirname(__file__), "..", "db", "vehicles.json")
+_VEHICLE_DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "vehicles.json")
 _VEHICLES: List[dict] = []
 
 

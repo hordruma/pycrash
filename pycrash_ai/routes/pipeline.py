@@ -18,9 +18,9 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from pycrash_ai.api.agent.extraction_agent import extract_from_text
-from pycrash_ai.api.models import ExtractionResponse
-from pycrash_ai.api.graph.store import get_store
+from pycrash_ai.agent.extraction_agent import extract_from_text
+from pycrash_ai.models import ExtractionResponse
+from pycrash_ai.graph.store import get_store
 
 router = APIRouter()
 
@@ -192,7 +192,7 @@ def _lookup_vehicle(year: Optional[int], make: Optional[str],
     import os
 
     db_path = os.path.join(
-        os.path.dirname(__file__), "..", "db", "vehicles.json"
+        os.path.dirname(__file__), "..", "data", "vehicles.json"
     )
     if not os.path.exists(db_path):
         return _default_vehicle(make, model)
