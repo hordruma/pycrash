@@ -19,8 +19,8 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=("__pycache__", )),
     classifiers=[
         "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
     ],
-    license="GPL-3.0-only",
     python_requires='>=3.9',
 )
