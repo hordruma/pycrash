@@ -20,4 +20,4 @@ app.conf.update(
 )
 
 # Auto-discover tasks
-app.autodiscover_tasks(["platform.api.tasks"])
+app.autodiscover_tasks(["pycrash_ai.tasks"])
