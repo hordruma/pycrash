@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # Install pycrash core + all extras
-COPY setup.py pyproject.toml ./
+COPY README.md setup.py pyproject.toml ./
 COPY pycrash/ pycrash/
 RUN pip install --no-cache-dir ".[dev,ai]"
 
