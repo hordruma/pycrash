@@ -1,14 +1,20 @@
 """PycrashAI - FastAPI application."""
 from __future__ import annotations
 
+import logging
+import time
+from collections import defaultdict
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import os
 
 from pycrash_ai.routes import simulate, extract, montecarlo, report, vehicles, pipeline, cases
 from pycrash_ai.config import settings
+
+logger = logging.getLogger("pycrash_ai")
 
 app = FastAPI(
     title="PycrashAI",
@@ -23,6 +29,84 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---------------------------------------------------------------------------
+# Middleware (declared order: auth, rate-limit, logging)
+# FastAPI runs middleware in REVERSE declaration order, so logging runs first
+# (outermost), then rate-limit, then auth (innermost).
+# ---------------------------------------------------------------------------
+
+# Rate limit storage: {ip: [timestamp, ...]}
+_rate_limits: dict[str, list[float]] = defaultdict(list)
+
+# Paths that require stricter rate limits
+_HEAVY_PREFIXES = ("/api/v1/simulate/", "/api/v1/montecarlo/", "/api/v1/pipeline/")
+
+
+@app.middleware("http")
+async def auth_middleware(request, call_next):
+    """Require Bearer token on /api/ routes when PYCRASH_API_KEY is set."""
+    if not request.url.path.startswith("/api/"):
+        return await call_next(request)
+
+    api_key = settings.api_key
+    if not api_key:  # No key configured = no auth required
+        return await call_next(request)
+
+    auth = request.headers.get("Authorization", "")
+    if auth != f"Bearer {api_key}":
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Invalid or missing API key"},
+        )
+
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def rate_limit_middleware(request, call_next):
+    """Simple in-memory per-IP rate limiting."""
+    if not request.url.path.startswith("/api/"):
+        return await call_next(request)
+
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+
+    # Determine limit based on path
+    is_heavy = any(request.url.path.startswith(p) for p in _HEAVY_PREFIXES)
+    limit = 10 if is_heavy else 100
+    window = 60  # seconds
+
+    # Build a per-bucket key so heavy and normal limits are tracked separately
+    bucket = f"{client_ip}:heavy" if is_heavy else f"{client_ip}:normal"
+
+    # Purge timestamps older than the window
+    _rate_limits[bucket] = [t for t in _rate_limits[bucket] if now - t < window]
+
+    if len(_rate_limits[bucket]) >= limit:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Too many requests. Please try again later."},
+        )
+
+    _rate_limits[bucket].append(now)
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def log_middleware(request, call_next):
+    """Log method, path, status code, and duration for every request."""
+    start = time.time()
+    response = await call_next(request)
+    duration = (time.time() - start) * 1000
+    logger.info(
+        "%s %s %s %0.fms",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration,
+    )
+    return response
 
 # Mount routes
 app.include_router(simulate.router, prefix="/api/v1", tags=["simulation"])

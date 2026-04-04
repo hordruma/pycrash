@@ -8,6 +8,7 @@ Falls back to heuristic extraction without an API key.
 """
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Optional
 
 from pycrash_ai.agent.llm_provider import get_provider, LLMResponse
@@ -17,6 +18,41 @@ from pycrash_ai.agent.ingest import (
     build_extraction_messages, build_openai_messages,
 )
 from pycrash_ai.models import ExtractionResponse, ExtractedVehicle, ExtractedScene
+
+
+# Maximum input length for crash reports (characters)
+_MAX_INPUT_LENGTH = 50000
+
+# Patterns that may indicate prompt injection attempts
+_INJECTION_PATTERNS = [
+    re.compile(r'(?i)\bignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?)\b'),
+    re.compile(r'(?i)\byou\s+are\s+now\b'),
+    re.compile(r'(?i)\bnew\s+instructions?\b'),
+    re.compile(r'(?i)\bsystem\s*:\s*'),
+    re.compile(r'(?i)\bassistant\s*:\s*'),
+    re.compile(r'(?i)\bhuman\s*:\s*'),
+    re.compile(r'(?i)\b(forget|disregard)\s+(everything|all)\b'),
+]
+
+
+def _sanitize_input(text: str) -> str:
+    """Sanitize user input before sending to LLM to mitigate prompt injection.
+
+    Removes common injection patterns (role markers, instruction overrides)
+    and truncates extremely long inputs. Crash reports should not exceed 50k
+    characters.
+    """
+    sanitized = text
+
+    # Remove attempts to override system prompts
+    for pattern in _INJECTION_PATTERNS:
+        sanitized = pattern.sub('[REDACTED]', sanitized)
+
+    # Truncate extremely long inputs (crash reports shouldn't be >50k chars)
+    if len(sanitized) > _MAX_INPUT_LENGTH:
+        sanitized = sanitized[:_MAX_INPUT_LENGTH] + "\n[TRUNCATED]"
+
+    return sanitized
 
 
 SYSTEM_PROMPT = """You are a crash reconstruction specialist assistant. Your job is to extract structured data from police crash reports, witness statements, and crash descriptions.
@@ -60,6 +96,9 @@ async def extract_from_text(
         ExtractionResponse with vehicles, crash type, scene data
     """
     provider = get_provider(provider=provider_name, api_key=api_key, model=model)
+
+    # Sanitize input before sending to LLM
+    text = _sanitize_input(text)
 
     if provider.name == "mock":
         return _heuristic_extraction(text)

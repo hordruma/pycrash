@@ -16,6 +16,7 @@ from __future__ import annotations
 import base64
 import io
 import os
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -139,11 +140,15 @@ def ingest_image(image_bytes: bytes, filename: str = "report.jpg") -> IngestedDo
 
 
 def ingest_text(text: str, filename: str = "report.txt") -> IngestedDocument:
-    """Ingest plain text (already extracted or pasted)."""
+    """Ingest plain text (already extracted or pasted).
+
+    Text is sanitized to mitigate prompt injection before storage.
+    """
+    sanitized = _sanitize_text(text)
     return IngestedDocument(
         filename=filename,
-        pages=[PageContent(page_num=1, text=text, extraction_method="text")],
-        full_text=text,
+        pages=[PageContent(page_num=1, text=sanitized, extraction_method="text")],
+        full_text=sanitized,
         page_images=[],
         needs_vision=False,
     )

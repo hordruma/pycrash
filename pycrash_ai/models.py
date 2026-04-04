@@ -187,6 +187,94 @@ class ReportResponse(BaseModel):
 # Vehicle Database
 # ---------------------------------------------------------------------------
 
+class IMPCVehicleInput(BaseModel):
+    """Simplified vehicle input for IMPC momentum calculation."""
+    weight: float = Field(..., gt=0, description="Vehicle weight (lb)")
+    speed_mph: float = Field(..., ge=0, description="Pre-impact speed (mph)")
+    heading_deg: float = Field(0, description="Heading angle (degrees, 0=east, CCW positive)")
+    lateral_speed_mph: float = Field(0, description="Lateral speed (mph)")
+    yaw_rate_deg_s: float = Field(0, description="Yaw rate (deg/s)")
+    izz: float = Field(0, gt=0, description="Yaw moment of inertia (lb-ft-s^2)")
+    impact_dx_ft: float = Field(0, description="Impact point x offset from CG in vehicle frame (ft)")
+    impact_dy_ft: float = Field(0, description="Impact point y offset from CG in vehicle frame (ft)")
+
+
+class IMPCRequest(BaseModel):
+    """Impulse-momentum planar collision request.
+
+    This is a simplified wrapper around the Carpenter & Welcher IMPC model.
+    It performs the momentum-based collision calculation directly without
+    requiring the full Impact simulation infrastructure (no tire model,
+    no trajectory integration, no impact detection geometry).
+
+    Limitations:
+    - Single instantaneous collision only (no multi-impact sequences)
+    - No pre/post-impact vehicle trajectory simulation
+    - Impact point offsets from CG must be provided directly
+    - No impact plane angle auto-detection; uses impact_plane_angle_deg
+    """
+    vehicle1: IMPCVehicleInput = Field(..., description="Striking vehicle")
+    vehicle2: IMPCVehicleInput = Field(..., description="Struck vehicle")
+    impact_plane_angle_deg: float = Field(0, description="Impact plane angle relative to vehicle 1 heading (degrees)")
+    cor: float = Field(0.15, ge=0, le=1, description="Coefficient of restitution")
+    vehicle_mu: float = Field(0.3, ge=0, le=1.5, description="Inter-vehicle friction coefficient")
+
+
+class SideswipeVehicleInput(BaseModel):
+    """Simplified vehicle input for sideswipe calculation."""
+    weight: float = Field(..., gt=0, description="Vehicle weight (lb)")
+    speed_mph: float = Field(..., ge=0, description="Pre-impact speed (mph)")
+    heading_deg: float = Field(0, description="Heading angle (degrees)")
+    lateral_speed_mph: float = Field(0, description="Lateral speed (mph)")
+
+
+class SideswipeRequest(BaseModel):
+    """Sideswipe collision request.
+
+    This is a simplified sideswipe model that calculates forces and
+    impulse from continuous contact between two vehicles traveling
+    in similar directions with lateral overlap.
+
+    The model applies normal force from crush depth * mutual stiffness
+    and friction force from relative sliding velocity.
+
+    Limitations:
+    - Simplified 1D overlap model (no full 2D geometry)
+    - No tire forces or vehicle dynamics during contact
+    - Assumes parallel or near-parallel travel directions
+    - Contact duration and overlap depth are user-specified
+    """
+    vehicle1: SideswipeVehicleInput = Field(..., description="Vehicle 1")
+    vehicle2: SideswipeVehicleInput = Field(..., description="Vehicle 2")
+    overlap_ft: float = Field(0.5, gt=0, description="Lateral overlap / crush depth (ft)")
+    contact_length_ft: float = Field(5.0, gt=0, description="Longitudinal contact length (ft)")
+    kmutual: float = Field(30000, gt=0, description="Mutual stiffness (lb/ft)")
+    vehicle_mu: float = Field(0.5, ge=0, le=1.5, description="Inter-vehicle friction coefficient")
+
+
+# ---------------------------------------------------------------------------
+# Visualization
+# ---------------------------------------------------------------------------
+
+class VehiclePosition(BaseModel):
+    """Vehicle position for crash scene visualization."""
+    x: float = 0  # center position X (ft)
+    y: float = 0  # center position Y (ft)
+    heading: float = 0  # heading angle (degrees, 0=east, 90=north)
+    length: float = 15  # vehicle length (ft)
+    width: float = 6  # vehicle width (ft)
+    label: str = "Vehicle"
+    color: str = "blue"
+
+
+class VisualizationRequest(BaseModel):
+    """Request to generate a 2D crash scene diagram."""
+    vehicles: list[VehiclePosition]
+    impact_point: Optional[Dict[str, float]] = None  # {x, y}
+    title: str = "Crash Scene"
+    show_grid: bool = True
+
+
 class VehicleLookupResponse(BaseModel):
     """Vehicle specs from database."""
     year: int

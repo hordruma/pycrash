@@ -1,9 +1,11 @@
 """Simulation API routes."""
 from __future__ import annotations
 
+import math
+
 from fastapi import APIRouter, HTTPException
 
-from pycrash_ai.models import SDOFRequest, SimulationStatus
+from pycrash_ai.models import SDOFRequest, SimulationStatus, VisualizationRequest
 
 router = APIRouter()
 

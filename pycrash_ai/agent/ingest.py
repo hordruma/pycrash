@@ -16,6 +16,7 @@ from __future__ import annotations
 import base64
 import io
 import os
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -139,11 +140,15 @@ def ingest_image(image_bytes: bytes, filename: str = "report.jpg") -> IngestedDo
 
 
 def ingest_text(text: str, filename: str = "report.txt") -> IngestedDocument:
-    """Ingest plain text (already extracted or pasted)."""
+    """Ingest plain text (already extracted or pasted).
+
+    Text is sanitized to mitigate prompt injection before storage.
+    """
+    sanitized = _sanitize_text(text)
     return IngestedDocument(
         filename=filename,
-        pages=[PageContent(page_num=1, text=text, extraction_method="text")],
-        full_text=text,
+        pages=[PageContent(page_num=1, text=sanitized, extraction_method="text")],
+        full_text=sanitized,
         page_images=[],
         needs_vision=False,
     )
@@ -162,6 +167,29 @@ def _fallback_ingest(pdf_bytes: bytes, filename: str) -> IngestedDocument:
         page_images=[img_b64],
         needs_vision=True,
     )
+
+
+def _sanitize_text(text: str) -> str:
+    """Sanitize ingested text to mitigate prompt injection.
+
+    Strips common role markers and instruction-override patterns that
+    could confuse the downstream LLM.
+    """
+    _injection_patterns = [
+        re.compile(r'(?i)\bignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?)\b'),
+        re.compile(r'(?i)\byou\s+are\s+now\b'),
+        re.compile(r'(?i)\bnew\s+instructions?\b'),
+        re.compile(r'(?i)\bsystem\s*:\s*'),
+        re.compile(r'(?i)\bassistant\s*:\s*'),
+        re.compile(r'(?i)\bhuman\s*:\s*'),
+        re.compile(r'(?i)\b(forget|disregard)\s+(everything|all)\b'),
+    ]
+    sanitized = text
+    for pattern in _injection_patterns:
+        sanitized = pattern.sub('[REDACTED]', sanitized)
+    if len(sanitized) > 50000:
+        sanitized = sanitized[:50000] + "\n[TRUNCATED]"
+    return sanitized
 
 
 def build_extraction_messages(doc: IngestedDocument) -> List[Dict[str, Any]]:

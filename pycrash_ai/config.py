@@ -21,6 +21,9 @@ class Settings(BaseModel):
     default_mc_runs: int = 1000
     max_mc_runs: int = 50000
 
+    # API key authentication (empty = no auth required)
+    api_key: str = os.getenv("PYCRASH_API_KEY", "")
+
     # Claude model
     claude_model: str = "claude-sonnet-4-20250514"
 
