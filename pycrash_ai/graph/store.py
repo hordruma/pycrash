@@ -25,9 +25,13 @@ Usage:
 """
 from __future__ import annotations
 
+import glob
 import json
+import logging
 import os
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 from pycrash_ai.graph.schema import (
     GraphLayer, NodeLabel, EVIDENCE_TO_PYCRASH,
@@ -337,19 +341,93 @@ class InMemoryCaseGraph(
 # ===================================================================
 
 class InMemoryCaseStore:
-    """In-memory store for testing without FalkorDB."""
+    """In-memory store for testing without FalkorDB.
 
-    def __init__(self):
+    Optionally persists cases to disk as JSON files when ``data_dir``
+    is set (via constructor or the ``PYCRASH_CASES_DIR`` env var).
+    On startup, any ``.json`` files in that directory are loaded back
+    into memory so cases survive container restarts.
+    """
+
+    def __init__(self, data_dir: str = ""):
         self._cases: Dict[str, InMemoryCaseGraph] = {}
+        self._data_dir = data_dir or os.getenv("PYCRASH_CASES_DIR", "")
+        if self._data_dir:
+            os.makedirs(self._data_dir, exist_ok=True)
+            self._load_all()
 
     @property
     def connected(self) -> bool:
         return True
 
+    # ------------------------------------------------------------------
+    # Persistence helpers
+    # ------------------------------------------------------------------
+
+    def _load_all(self) -> None:
+        """Load all cases from disk on startup."""
+        if not self._data_dir:
+            return
+        for path in glob.glob(os.path.join(self._data_dir, "*.json")):
+            try:
+                with open(path) as f:
+                    data = json.load(f)
+                case_id = data.get("case_id", "")
+                if not case_id:
+                    continue
+                case = InMemoryCaseGraph(case_id, data.get("title", ""))
+                # Restore raw graph if available (full fidelity)
+                if "_nodes" in data and "_edges" in data:
+                    for node in data["_nodes"]:
+                        case._nodes[node["id"]] = node
+                    case._edges = data["_edges"]
+                logger.info("Loaded case %s from %s", case_id, path)
+                self._cases[case_id] = case
+            except Exception:
+                logger.warning("Failed to load case from %s", path, exc_info=True)
+
+    def _persist(self, case_id: str) -> None:
+        """Save a case to disk."""
+        if not self._data_dir or case_id not in self._cases:
+            return
+        try:
+            export = self._cases[case_id].export()
+            path = os.path.join(self._data_dir, f"{case_id}.json")
+            with open(path, "w") as f:
+                json.dump(export, f, indent=2, default=str)
+        except Exception:
+            logger.warning("Failed to persist case %s", case_id, exc_info=True)
+
+    def save_case(self, case_id: str) -> None:
+        """Explicitly save a case to disk."""
+        self._persist(case_id)
+
+    def load_case(self, case_id: str) -> InMemoryCaseGraph:
+        """Load (or reload) a single case from disk."""
+        if not self._data_dir:
+            raise FileNotFoundError("No data_dir configured for persistence")
+        path = os.path.join(self._data_dir, f"{case_id}.json")
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"No persisted case file: {path}")
+        with open(path) as f:
+            data = json.load(f)
+        case = InMemoryCaseGraph(case_id, data.get("title", ""))
+        if "_nodes" in data and "_edges" in data:
+            for node in data["_nodes"]:
+                case._nodes[node["id"]] = node
+            case._edges = data["_edges"]
+        self._cases[case_id] = case
+        return case
+
+    # ------------------------------------------------------------------
+    # CRUD
+    # ------------------------------------------------------------------
+
     def create_case(self, case_id: str, title: str = "",
                     date_of_loss: str = "") -> InMemoryCaseGraph:
         case = InMemoryCaseGraph(case_id, title)
         self._cases[case_id] = case
+        self._persist(case_id)
         return case
 
     def open_case(self, case_id: str) -> InMemoryCaseGraph:
