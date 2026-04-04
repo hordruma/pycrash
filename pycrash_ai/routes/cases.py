@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field
 
+from pycrash_ai.config import settings
 from pycrash_ai.graph.store import get_store
 
 router = APIRouter(prefix="/cases", tags=["cases"])
@@ -169,7 +170,7 @@ _store = None
 def _get_store():
     global _store
     if _store is None:
-        _store = get_store()
+        _store = get_store(cases_dir=settings.cases_dir)
     return _store
 
 
@@ -179,6 +180,13 @@ def _open_case(case_id: str):
         return store.open_case(case_id)
     except (KeyError, Exception):
         raise HTTPException(status_code=404, detail=f"Case not found: {case_id}")
+
+
+def _persist_case(case_id: str) -> None:
+    """Persist a case to disk after a mutating operation."""
+    store = _get_store()
+    if hasattr(store, "_persist"):
+        store._persist(case_id)
 
 
 # ===================================================================
@@ -193,6 +201,7 @@ async def create_case(req: CreateCaseRequest):
         case_id=req.case_id, title=req.title, date_of_loss=req.date_of_loss,
     )
     case.add_scene()
+    _persist_case(req.case_id)
     return CaseResponse(case_id=case.case_id, title=case.title)
 
 
@@ -246,6 +255,7 @@ async def add_vehicle(case_id: str, req: AddVehicleRequest):
         vehicle_number=req.vehicle_number, make=req.make,
         model=req.model, year=req.year, role=req.role,
     )
+    _persist_case(case_id)
     return {"vehicle_id": vid}
 
 
@@ -261,6 +271,7 @@ async def add_driver(case_id: str, req: AddDriverRequest):
         vehicle_number=req.vehicle_number, name=req.name,
         age=req.age, impairment=req.impairment,
     )
+    _persist_case(case_id)
     return {"driver_id": did}
 
 
@@ -280,6 +291,7 @@ async def add_event(case_id: str, req: AddEventRequest):
         event_type=req.event_type, description=req.description,
         t=req.t, phase=req.phase,
     )
+    _persist_case(case_id)
     return {"event_id": eid}
 
 
@@ -289,6 +301,7 @@ async def add_phase(case_id: str, req: AddPhaseRequest):
     pid = case.add_phase(
         phase_name=req.phase_name, t_start=req.t_start, t_end=req.t_end,
     )
+    _persist_case(case_id)
     return {"phase_id": pid}
 
 
@@ -296,6 +309,7 @@ async def add_phase(case_id: str, req: AddPhaseRequest):
 async def order_events(case_id: str, req: OrderEventsRequest):
     case = _open_case(case_id)
     case.order_events(req.event_id_before, req.event_id_after)
+    _persist_case(case_id)
     return {"status": "ordered"}
 
 
@@ -303,6 +317,7 @@ async def order_events(case_id: str, req: OrderEventsRequest):
 async def link_entity_to_event(case_id: str, req: LinkEntityEventRequest):
     case = _open_case(case_id)
     case.link_entity_to_event(req.entity_id, req.event_id)
+    _persist_case(case_id)
     return {"status": "linked"}
 
 
@@ -328,6 +343,7 @@ async def add_position(case_id: str, req: AddPositionRequest):
         x=req.x, y=req.y, heading=req.heading,
         entity_id=req.entity_id, event_id=req.event_id, t=req.t,
     )
+    _persist_case(case_id)
     return {"position_id": pid}
 
 
@@ -340,6 +356,7 @@ async def add_impact_point(case_id: str, req: AddImpactPointRequest):
         x=req.x, y=req.y, vehicle1_id=v1_id, vehicle2_id=v2_id,
         event_id=req.event_id,
     )
+    _persist_case(case_id)
     return {"impact_point_id": ipid}
 
 
@@ -347,6 +364,7 @@ async def add_impact_point(case_id: str, req: AddImpactPointRequest):
 async def add_trajectory(case_id: str, req: AddTrajectoryRequest):
     case = _open_case(case_id)
     tid = case.add_trajectory(entity_id=req.entity_id, positions=req.positions)
+    _persist_case(case_id)
     return {"trajectory_id": tid}
 
 
@@ -368,6 +386,7 @@ async def get_impact_points(case_id: str):
 async def add_source(case_id: str, req: AddSourceRequest):
     case = _open_case(case_id)
     sid = case.add_source(source_type=req.source_type, description=req.description)
+    _persist_case(case_id)
     return {"source_id": sid}
 
 
@@ -381,6 +400,7 @@ async def add_evidence(case_id: str, req: AddEvidenceRequest):
         applies_to_vehicle=req.applies_to_vehicle,
         applies_to_scene=req.applies_to_scene,
     )
+    _persist_case(case_id)
     return {"evidence_id": eid}
 
 
@@ -410,6 +430,7 @@ async def add_factor(case_id: str, req: AddFactorRequest):
         factor_type=req.factor_type, description=req.description,
         severity=req.severity,
     )
+    _persist_case(case_id)
     return {"factor_id": fid}
 
 
@@ -425,6 +446,7 @@ async def link_factor(case_id: str, req: LinkFactorRequest):
         case.link_factor_to_evidence(req.factor_id, req.target_id)
     else:
         raise HTTPException(status_code=400, detail=f"Unknown link_type: {req.link_type}")
+    _persist_case(case_id)
     return {"status": "linked"}
 
 
@@ -449,6 +471,7 @@ async def add_delta_v(case_id: str, req: AddDeltaVRequest):
         vehicle_number=req.vehicle_number, dvx=req.dvx, dvy=req.dvy,
         magnitude_mph=req.magnitude_mph, event_id=req.event_id,
     )
+    _persist_case(case_id)
     return {"deltav_id": did}
 
 
@@ -460,6 +483,7 @@ async def add_force(case_id: str, req: AddForceRequest):
         vehicle_number=req.vehicle_number,
         impact_point_id=req.impact_point_id, event_id=req.event_id,
     )
+    _persist_case(case_id)
     return {"force_id": fid}
 
 
@@ -470,6 +494,7 @@ async def add_crush(case_id: str, req: AddCrushRequest):
         vehicle_number=req.vehicle_number, depth=req.depth,
         width=req.width, profile=req.profile,
     )
+    _persist_case(case_id)
     return {"crush_id": cid}
 
 
@@ -479,6 +504,7 @@ async def add_energy(case_id: str, req: AddEnergyRequest):
     eid = case.add_energy(
         value=req.value, unit=req.unit, vehicle_number=req.vehicle_number,
     )
+    _persist_case(case_id)
     return {"energy_id": eid}
 
 

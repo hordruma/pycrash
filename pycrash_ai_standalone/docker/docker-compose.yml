@@ -7,12 +7,14 @@ services:
       - "8100:8000"
     volumes:
       - reports:/app/reports
+      - cases:/app/data/cases
     environment:
       - REDIS_URL=redis://redis:6379/0
       - FALKORDB_URL=redis://falkordb:6379/0
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - PYCRASH_ENV=development
+      - PYCRASH_CASES_DIR=/app/data/cases
     depends_on:
       redis:
         condition: service_healthy
@@ -26,12 +28,14 @@ services:
       dockerfile: docker/Dockerfile
     volumes:
       - reports:/app/reports
+      - cases:/app/data/cases
     environment:
       - REDIS_URL=redis://redis:6379/0
       - FALKORDB_URL=redis://falkordb:6379/0
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - PYCRASH_ENV=development
+      - PYCRASH_CASES_DIR=/app/data/cases
     depends_on:
       redis:
         condition: service_healthy
@@ -61,4 +65,5 @@ services:
 
 volumes:
   reports:
+  cases:
   falkordb_data:

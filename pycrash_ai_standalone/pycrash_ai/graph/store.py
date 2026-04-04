@@ -625,8 +625,13 @@ class CaseGraphStore:
 # AUTO-DETECT STORE
 # ===================================================================
 
-def get_store(redis_url: Optional[str] = None):
-    """Get graph store. Tries FalkorDB first, falls back to in-memory."""
+def get_store(redis_url: Optional[str] = None, cases_dir: str = ""):
+    """Get graph store. Tries FalkorDB first, falls back to in-memory.
+
+    When falling back to the in-memory store, ``cases_dir`` (or the
+    ``PYCRASH_CASES_DIR`` env var) enables disk persistence so that
+    cases survive process restarts.
+    """
     if redis_url:
         try:
             store = CaseGraphStore(redis_url=redis_url)
@@ -644,4 +649,5 @@ def get_store(redis_url: Optional[str] = None):
         except Exception:
             pass
 
-    return InMemoryCaseStore()
+    resolved_dir = cases_dir or os.getenv("PYCRASH_CASES_DIR", "")
+    return InMemoryCaseStore(data_dir=resolved_dir)

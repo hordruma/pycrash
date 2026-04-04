@@ -24,6 +24,9 @@ class Settings(BaseModel):
     # API key authentication (empty = no auth required)
     api_key: str = os.getenv("PYCRASH_API_KEY", "")
 
+    # Case persistence directory (empty = in-memory only)
+    cases_dir: str = os.getenv("PYCRASH_CASES_DIR", "./data/cases")
+
     # Claude model
     claude_model: str = "claude-sonnet-4-20250514"
 

@@ -5,7 +5,7 @@ import math
 
 from fastapi import APIRouter, HTTPException
 
-from pycrash_ai.models import SDOFRequest, SimulationStatus, VisualizationRequest
+from pycrash_ai.models import SDOFRequest, SimulationStatus, IMPCRequest, SideswipeRequest, VisualizationRequest
 
 router = APIRouter()
 
