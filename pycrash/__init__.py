@@ -7,3 +7,9 @@ from .sdof_model import SDOF_Model
 from .definitions import definitions
 
 __all__ = ["Impact", "Project", "Vehicle", "SingleMotion", "KinematicsTwo", "SDOF_Model", "definitions"]
+
+# BeamNG.tech integration (optional - requires beamngpy)
+try:
+    from . import beamng
+except ImportError:
+    pass
