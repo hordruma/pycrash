@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from pycrash_ai.agent.extraction_agent import extract_from_text
+from pycrash_ai.agent.extraction_agent import extract_from_text, _sanitize_input
 from pycrash_ai.models import ExtractionResponse
 from pycrash_ai.graph.store import get_store
 
@@ -59,9 +59,10 @@ async def run_pipeline(
 
     This is the end-to-end pipeline: paste a police report, get a reconstruction.
     """
-    # Step 1: Extract
+    # Step 1: Sanitize and extract
+    sanitized_text = _sanitize_input(req.text)
     extraction = await extract_from_text(
-        text=req.text,
+        text=sanitized_text,
         provider_name=x_provider,
         api_key=x_api_key,
         model=x_model,
