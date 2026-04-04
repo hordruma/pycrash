@@ -85,3 +85,96 @@ def get_simulation_status(job_id: str):
         )
     else:
         return SimulationStatus(job_id=job_id, status=result.state)
+
+
+def _vehicle_corners(x: float, y: float, length: float, width: float, heading_deg: float) -> list[tuple[float, float]]:
+    """Compute the four corners of a rotated vehicle rectangle."""
+    h = math.radians(heading_deg)
+    cos_h, sin_h = math.cos(h), math.sin(h)
+    hw, hl = width / 2, length / 2
+    corners = [
+        (x + hl * cos_h - hw * sin_h, y + hl * sin_h + hw * cos_h),  # front-left
+        (x + hl * cos_h + hw * sin_h, y + hl * sin_h - hw * cos_h),  # front-right
+        (x - hl * cos_h + hw * sin_h, y - hl * sin_h - hw * cos_h),  # rear-right
+        (x - hl * cos_h - hw * sin_h, y - hl * sin_h + hw * cos_h),  # rear-left
+    ]
+    return corners
+
+
+@router.post("/simulate/visualize")
+def generate_crash_visualization(req: VisualizationRequest):
+    """Generate a 2D crash scene diagram as Plotly JSON."""
+    traces = []
+
+    for veh in req.vehicles:
+        corners = _vehicle_corners(veh.x, veh.y, veh.length, veh.width, veh.heading)
+        # Close the polygon by repeating the first corner
+        xs = [c[0] for c in corners] + [corners[0][0]]
+        ys = [c[1] for c in corners] + [corners[0][1]]
+
+        # Filled vehicle polygon
+        traces.append({
+            "type": "scatter",
+            "x": xs,
+            "y": ys,
+            "mode": "lines",
+            "fill": "toself",
+            "fillcolor": veh.color,
+            "opacity": 0.4,
+            "line": {"color": veh.color, "width": 2},
+            "name": veh.label,
+            "showlegend": True,
+        })
+
+        # Vehicle label at center
+        traces.append({
+            "type": "scatter",
+            "x": [veh.x],
+            "y": [veh.y],
+            "mode": "text",
+            "text": [veh.label],
+            "textposition": "middle center",
+            "textfont": {"size": 11, "color": "black"},
+            "showlegend": False,
+        })
+
+    # Impact point marker
+    if req.impact_point and "x" in req.impact_point and "y" in req.impact_point:
+        traces.append({
+            "type": "scatter",
+            "x": [req.impact_point["x"]],
+            "y": [req.impact_point["y"]],
+            "mode": "markers+text",
+            "marker": {"symbol": "x", "size": 14, "color": "red", "line": {"width": 2}},
+            "text": ["Impact"],
+            "textposition": "top center",
+            "textfont": {"size": 10, "color": "red"},
+            "name": "Impact Point",
+            "showlegend": True,
+        })
+
+    layout = {
+        "title": {"text": req.title},
+        "xaxis": {
+            "title": "X (ft)",
+            "scaleanchor": "y",
+            "scaleratio": 1,
+            "showgrid": req.show_grid,
+            "gridcolor": "#e5e7eb",
+            "zeroline": True,
+        },
+        "yaxis": {
+            "title": "Y (ft)",
+            "showgrid": req.show_grid,
+            "gridcolor": "#e5e7eb",
+            "zeroline": True,
+        },
+        "showlegend": True,
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "plot_bgcolor": "rgba(0,0,0,0)",
+        "font": {"family": "Inter, system-ui, sans-serif", "size": 12},
+        "margin": {"t": 50, "r": 20, "b": 50, "l": 60},
+    }
+
+    fig_dict = {"data": traces, "layout": layout}
+    return {"plotly_json": fig_dict}
