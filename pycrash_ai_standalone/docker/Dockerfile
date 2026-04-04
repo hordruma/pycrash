@@ -15,9 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Upgrade pip + build tools
 RUN pip install --no-cache-dir --upgrade pip "setuptools>=68.0,<82" wheel
 
-# Install pycrash core + all extras
-COPY README.md setup.py pyproject.toml ./
-COPY pycrash/ pycrash/
+# Install dependencies (pycrash comes from PyPI via pyproject.toml)
+COPY pyproject.toml README.md ./
 RUN pip install --no-cache-dir ".[dev]"
 
 # Copy platform code

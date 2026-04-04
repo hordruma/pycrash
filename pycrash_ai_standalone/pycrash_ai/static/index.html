@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PycrashAI - Crash Reconstruction</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/morph@3.14.8/dist/cdn.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-basic-2.35.0.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="/static/js/simulator.js" defer></script>
+  <script src="/static/js/montecarlo.js" defer></script>
+  <script src="/static/js/vehicles.js" defer></script>
+  <script src="/static/js/cases.js" defer></script>
+  <script src="/static/js/pipeline.js" defer></script>
+  <script src="/static/js/reports.js" defer></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gray-50 font-sans" x-data="shell()" x-init="loadPage('dashboard')">
+
+  <!-- Sidebar -->
+  <aside class="fixed inset-y-0 left-0 w-64 bg-slate-900 text-white flex flex-col z-50">
+    <div class="p-5 border-b border-slate-700">
+      <div class="flex items-center gap-3">
+        <i class="fa-solid fa-car-burst text-2xl text-blue-400"></i>
+        <div>
+          <h1 class="text-lg font-bold">PycrashAI</h1>
+          <p class="text-xs text-slate-400">Crash Reconstruction</p>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 py-4 overflow-y-auto">
+      <template x-for="item in nav" :key="item.id">
+        <a href="#" @click.prevent="loadPage(item.id)"
+           class="flex items-center gap-3 px-5 py-3 text-sm transition-colors"
+           :class="page === item.id ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white'">
+          <i :class="item.icon" class="w-5 text-center"></i>
+          <span x-text="item.label"></span>
+        </a>
+      </template>
+    </nav>
+
+    <div class="p-4 border-t border-slate-700 text-xs text-slate-500">
+      <div class="flex items-center justify-between">
+        <span>v0.1.0</span>
+        <a href="/docs" target="_blank" class="text-blue-400 hover:text-blue-300">API Docs</a>
+      </div>
+      <div class="mt-2 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full" :class="healthy ? 'bg-green-400' : 'bg-red-400'"></span>
+        <span x-text="healthy ? 'API Online' : 'API Offline'"></span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="ml-64 min-h-screen">
+    <div class="p-8">
+      <!-- Page content loaded here -->
+      <div id="page-content"></div>
+    </div>
+  </main>
+
+  <!-- Toast Notification -->
+  <div x-show="toast" x-transition
+       class="fixed bottom-6 right-6 px-5 py-3 rounded-lg shadow-lg text-white text-sm z-50"
+       :class="toastType === 'error' ? 'bg-red-600' : 'bg-green-600'"
+       x-text="toast"
+       @click="toast = ''">
+  </div>
+
+  <script>
+    function shell() {
+      return {
+        page: '',
+        healthy: false,
+        toast: '',
+        toastType: 'success',
+        nav: [
+          { id: 'dashboard',  icon: 'fa-solid fa-gauge',              label: 'Dashboard' },
+          { id: 'pipeline',   icon: 'fa-solid fa-file-circle-plus',   label: 'New Case' },
+          { id: 'cases',      icon: 'fa-solid fa-folder-open',        label: 'Cases' },
+          { id: 'simulator',  icon: 'fa-solid fa-play',               label: 'Simulator' },
+          { id: 'montecarlo', icon: 'fa-solid fa-chart-bar',          label: 'Monte Carlo' },
+          { id: 'vehicles',   icon: 'fa-solid fa-car',                label: 'Vehicles' },
+          { id: 'reports',    icon: 'fa-solid fa-file-pdf',           label: 'Reports' },
+        ],
+
+        async init() {
+          try {
+            const r = await fetch('/health');
+            this.healthy = r.ok;
+          } catch { this.healthy = false; }
+
+          window.addEventListener('navigate', (e) => this.loadPage(e.detail.page));
+          window.pycrashToast = (msg, type) => {
+            this.toast = msg;
+            this.toastType = type || 'success';
+            setTimeout(() => this.toast = '', 4000);
+          };
+        },
+
+        async loadPage(name) {
+          this.page = name;
+          const container = document.getElementById('page-content');
+          if (!container) return;
+
+          // Destroy existing Alpine trees
+          container.querySelectorAll('[x-data]').forEach(el => {
+            if (el._x_dataStack) Alpine.destroyTree(el);
+          });
+
+          try {
+            const resp = await fetch(`/static/pages/${name}.html`);
+            if (!resp.ok) throw new Error('Page not found');
+            const html = await resp.text();
+            container.innerHTML = html;
+            // Initialize Alpine.js on the new content
+            Alpine.initTree(container);
+          } catch {
+            container.innerHTML = `<div class="text-center py-20 text-red-500">
+              <i class="fa-solid fa-triangle-exclamation text-4xl mb-4"></i>
+              <p>Failed to load page: ${name}</p></div>`;
+          }
+        },
+
+        showToast(msg, type) {
+          this.toast = msg;
+          this.toastType = type || 'success';
+          setTimeout(() => this.toast = '', 4000);
+        }
+      };
+    }
+  </script>
+</body>
+</html>

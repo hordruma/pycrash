@@ -1,0 +1,64 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8100:8000"
+    volumes:
+      - reports:/app/reports
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - FALKORDB_URL=redis://falkordb:6379/0
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - PYCRASH_ENV=development
+    depends_on:
+      redis:
+        condition: service_healthy
+      falkordb:
+        condition: service_healthy
+    command: uvicorn pycrash_ai.app:app --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - reports:/app/reports
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - FALKORDB_URL=redis://falkordb:6379/0
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - PYCRASH_ENV=development
+    depends_on:
+      redis:
+        condition: service_healthy
+      falkordb:
+        condition: service_healthy
+    command: celery -A pycrash_ai.tasks.worker worker --loglevel=info --concurrency=4
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  falkordb:
+    image: falkordb/falkordb:latest
+    ports:
+      - "6390:6379"
+    volumes:
+      - falkordb_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  reports:
+  falkordb_data:

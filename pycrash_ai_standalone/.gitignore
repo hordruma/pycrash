@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+!.env.example
+.venv/
+venv/
+
+# Testing and tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generated reports
+reports/
+
+# Databases
+*.db
+
+# OS
+.DS_Store
+
+# Node
+node_modules/
