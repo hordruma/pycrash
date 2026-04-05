@@ -15,10 +15,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Upgrade pip + build tools
 RUN pip install --no-cache-dir --upgrade pip "setuptools>=68.0,<82" wheel
 
-# Install pycrash core + all extras
+# Install pycrash core
 COPY README.md setup.py pyproject.toml ./
 COPY pycrash/ pycrash/
 RUN pip install --no-cache-dir ".[dev]"
+
+# Install pycrash_ai dependencies (not part of pycrash's extras)
+RUN pip install --no-cache-dir \
+    "fastapi>=0.115" \
+    "uvicorn[standard]>=0.30" \
+    "celery[redis]>=5.4" \
+    "redis>=5.0" \
+    "anthropic>=0.39" \
+    "openai>=1.30" \
+    "weasyprint>=62.0" \
+    "jinja2>=3.1" \
+    "python-multipart>=0.0.9" \
+    "pydantic>=2.0" \
+    "PyMuPDF>=1.24" \
+    "httpx>=0.27"
 
 # Copy platform code
 COPY pycrash_ai/ pycrash_ai/
