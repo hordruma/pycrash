@@ -1,69 +1,91 @@
+name: pycrash-ai
+
 services:
-  api:
+  pycrash-api:
+    container_name: pycrash-api
+    image: pycrash-ai/api:dev
     build:
       context: ..
       dockerfile: docker/Dockerfile
     ports:
       - "8100:8000"
     volumes:
-      - reports:/app/reports
-      - cases:/app/data/cases
+      - ../pycrash_ai:/app/pycrash_ai:ro
+      - pycrash-reports:/app/reports
+      - pycrash-cases:/app/data/cases
     environment:
-      - REDIS_URL=redis://redis:6379/0
-      - FALKORDB_URL=redis://falkordb:6379/0
+      - REDIS_URL=redis://pycrash-redis:6379/0
+      - FALKORDB_URL=redis://pycrash-falkordb:6379/0
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - PYCRASH_ENV=development
       - PYCRASH_CASES_DIR=/app/data/cases
     depends_on:
-      redis:
+      pycrash-redis:
         condition: service_healthy
-      falkordb:
+      pycrash-falkordb:
         condition: service_healthy
     command: python -m uvicorn pycrash_ai.app:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - pycrash-net
 
-  worker:
+  pycrash-worker:
+    container_name: pycrash-worker
+    image: pycrash-ai/worker:dev
     build:
       context: ..
       dockerfile: docker/Dockerfile
     volumes:
-      - reports:/app/reports
-      - cases:/app/data/cases
+      - ../pycrash_ai:/app/pycrash_ai:ro
+      - pycrash-reports:/app/reports
+      - pycrash-cases:/app/data/cases
     environment:
-      - REDIS_URL=redis://redis:6379/0
-      - FALKORDB_URL=redis://falkordb:6379/0
+      - REDIS_URL=redis://pycrash-redis:6379/0
+      - FALKORDB_URL=redis://pycrash-falkordb:6379/0
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - PYCRASH_ENV=development
       - PYCRASH_CASES_DIR=/app/data/cases
     depends_on:
-      redis:
+      pycrash-redis:
         condition: service_healthy
-      falkordb:
+      pycrash-falkordb:
         condition: service_healthy
     command: python -m celery -A pycrash_ai.tasks.worker worker --loglevel=info --concurrency=4
+    networks:
+      - pycrash-net
 
-  redis:
+  pycrash-redis:
+    container_name: pycrash-redis
     image: redis:7-alpine
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - pycrash-net
 
-  falkordb:
+  pycrash-falkordb:
+    container_name: pycrash-falkordb
     image: falkordb/falkordb:latest
     ports:
       - "6390:6379"
     volumes:
-      - falkordb_data:/data
+      - pycrash-falkordb-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - pycrash-net
+
+networks:
+  pycrash-net:
+    name: pycrash-net
 
 volumes:
-  reports:
-  cases:
-  falkordb_data:
+  pycrash-reports:
+  pycrash-cases:
+  pycrash-falkordb-data:
