@@ -20,7 +20,7 @@ services:
         condition: service_healthy
       falkordb:
         condition: service_healthy
-    command: uvicorn pycrash_ai.app:app --host 0.0.0.0 --port 8000 --reload
+    command: python -m uvicorn pycrash_ai.app:app --host 0.0.0.0 --port 8000 --reload
 
   worker:
     build:
@@ -41,7 +41,7 @@ services:
         condition: service_healthy
       falkordb:
         condition: service_healthy
-    command: celery -A pycrash_ai.tasks.worker worker --loglevel=info --concurrency=4
+    command: python -m celery -A pycrash_ai.tasks.worker worker --loglevel=info --concurrency=4
 
   redis:
     image: redis:7-alpine
