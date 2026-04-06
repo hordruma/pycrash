@@ -18,9 +18,9 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from pycrash_ai.agent.extraction_agent import extract_from_text, _sanitize_input
-from pycrash_ai.models import ExtractionResponse
-from pycrash_ai.graph.store import get_store
+from crashout.agent.extraction_agent import extract_from_text, _sanitize_input
+from crashout.models import ExtractionResponse
+from crashout.graph.store import get_store
 
 router = APIRouter()
 

@@ -1,4 +1,4 @@
-"""Tests for PycrashAI API endpoints.
+"""Tests for Crashout API endpoints.
 
 Run with: pytest tests/ -v
 Or via Docker: docker compose run api pytest tests/ -v
@@ -6,7 +6,7 @@ Or via Docker: docker compose run api pytest tests/ -v
 import pytest
 from fastapi.testclient import TestClient
 
-from pycrash_ai.app import app
+from crashout.app import app
 
 client = TestClient(app)
 
@@ -145,7 +145,7 @@ class TestLLMProvider:
 
     def test_mock_provider(self):
         """Without API keys, should use mock provider."""
-        from pycrash_ai.agent.llm_provider import get_provider
+        from crashout.agent.llm_provider import get_provider
         import os
         # Temporarily clear env vars
         old_anthropic = os.environ.pop("ANTHROPIC_API_KEY", None)
@@ -160,12 +160,12 @@ class TestLLMProvider:
                 os.environ["OPENAI_API_KEY"] = old_openai
 
     def test_provider_selection_anthropic(self):
-        from pycrash_ai.agent.llm_provider import get_provider, AnthropicProvider
+        from crashout.agent.llm_provider import get_provider, AnthropicProvider
         provider = get_provider(provider="anthropic", api_key="sk-ant-test")
         assert isinstance(provider, AnthropicProvider)
 
     def test_provider_selection_openai(self):
-        from pycrash_ai.agent.llm_provider import get_provider, OpenAIProvider
+        from crashout.agent.llm_provider import get_provider, OpenAIProvider
         provider = get_provider(provider="openai", api_key="sk-test")
         assert isinstance(provider, OpenAIProvider)
 
@@ -174,7 +174,7 @@ class TestIngestion:
     """Test document ingestion."""
 
     def test_ingest_text(self):
-        from pycrash_ai.agent.ingest import ingest_text
+        from crashout.agent.ingest import ingest_text
         long_text = "Vehicle 1, a 2020 Toyota Camry, was traveling eastbound on Main Street at approximately 35 mph when it struck Vehicle 2."
         doc = ingest_text(long_text)
         assert long_text in doc.full_text
@@ -182,20 +182,20 @@ class TestIngestion:
         assert doc.text_quality == 1.0
 
     def test_ingest_image(self):
-        from pycrash_ai.agent.ingest import ingest_image
+        from crashout.agent.ingest import ingest_image
         doc = ingest_image(b"\x89PNG\r\n", "scan.png")
         assert doc.needs_vision
         assert len(doc.page_images) == 1
 
     def test_build_text_messages(self):
-        from pycrash_ai.agent.ingest import ingest_text, build_extraction_messages
+        from crashout.agent.ingest import ingest_text, build_extraction_messages
         doc = ingest_text("Vehicle 1 rear-ended Vehicle 2")
         messages = build_extraction_messages(doc)
         assert len(messages) == 1
         assert "Vehicle 1" in messages[0]["content"]
 
     def test_build_vision_messages(self):
-        from pycrash_ai.agent.ingest import ingest_image, build_extraction_messages
+        from crashout.agent.ingest import ingest_image, build_extraction_messages
         doc = ingest_image(b"\x89PNG\r\n", "scan.png")
         messages = build_extraction_messages(doc)
         assert len(messages) == 1
@@ -207,7 +207,7 @@ class TestCaseGraph:
     """Test in-memory case graph operations."""
 
     def test_create_case_and_add_vehicles(self):
-        from pycrash_ai.graph.store import InMemoryCaseStore
+        from crashout.graph.store import InMemoryCaseStore
         store = InMemoryCaseStore()
         case = store.create_case("test-001", title="Test Case")
         case.add_scene()
@@ -220,7 +220,7 @@ class TestCaseGraph:
         assert vehicles[1]["role"] == "struck"
 
     def test_add_evidence_and_retrieve(self):
-        from pycrash_ai.graph.store import InMemoryCaseStore
+        from crashout.graph.store import InMemoryCaseStore
         store = InMemoryCaseStore()
         case = store.create_case("test-002")
         case.add_vehicle(1, "Ford", "F-150", 2021)
@@ -241,7 +241,7 @@ class TestCaseGraph:
         assert any(e["key"] == "weight" for e in evidence)
 
     def test_find_gaps(self):
-        from pycrash_ai.graph.store import InMemoryCaseStore
+        from crashout.graph.store import InMemoryCaseStore
         store = InMemoryCaseStore()
         case = store.create_case("test-003")
         case.add_vehicle(1, "Toyota", "Camry", 2020)
@@ -259,7 +259,7 @@ class TestCaseGraph:
         assert "weight" not in gaps[0]["missing"]
 
     def test_find_contradictions(self):
-        from pycrash_ai.graph.store import InMemoryCaseStore
+        from crashout.graph.store import InMemoryCaseStore
         store = InMemoryCaseStore()
         case = store.create_case("test-004")
         case.add_vehicle(1, "Toyota", "Camry", 2020)
@@ -279,7 +279,7 @@ class TestCaseGraph:
         assert contradictions[0]["key"] == "estimated_speed_mph"
 
     def test_project_to_pycrash(self):
-        from pycrash_ai.graph.store import InMemoryCaseStore
+        from crashout.graph.store import InMemoryCaseStore
         store = InMemoryCaseStore()
         case = store.create_case("test-005")
         case.add_vehicle(1, "Toyota", "Camry", 2020, role="striking")
@@ -302,7 +302,7 @@ class TestCaseGraph:
         assert inp["striking"] is True
 
     def test_export_and_format(self):
-        from pycrash_ai.graph.store import InMemoryCaseStore
+        from crashout.graph.store import InMemoryCaseStore
         store = InMemoryCaseStore()
         case = store.create_case("test-006", title="Export Test")
         case.add_vehicle(1, "Toyota", "Camry", 2020)
@@ -320,7 +320,7 @@ class TestCaseGraph:
         assert "projection" in export
 
     def test_store_list_cases(self):
-        from pycrash_ai.graph.store import InMemoryCaseStore
+        from crashout.graph.store import InMemoryCaseStore
         store = InMemoryCaseStore()
         store.create_case("case-a")
         store.create_case("case-b")
@@ -333,7 +333,7 @@ class TestHypergraphLayers:
     """Test all 6 hypergraph layers and cross-layer queries."""
 
     def _make_case(self):
-        from pycrash_ai.graph.store import InMemoryCaseStore
+        from crashout.graph.store import InMemoryCaseStore
         store = InMemoryCaseStore()
         case = store.create_case("hyper-001", title="Full Hypergraph Test")
         case.add_scene()
@@ -516,7 +516,7 @@ class TestHypergraphLayers:
 
     def test_import_v2_crash_file(self):
         import tempfile
-        from pycrash_ai.graph.store import InMemoryCaseStore, InMemoryCaseGraph
+        from crashout.graph.store import InMemoryCaseStore, InMemoryCaseGraph
 
         store = InMemoryCaseStore()
         case = store.create_case("export-test", "Export Test")
@@ -546,7 +546,7 @@ class TestCaseAPI:
 
     def test_create_case(self):
         # Reset the store singleton for clean test
-        from pycrash_ai.routes import cases
+        from crashout.routes import cases
         cases._store = None
 
         r = client.post("/api/v1/cases", json={
@@ -559,7 +559,7 @@ class TestCaseAPI:
         assert data["title"] == "API Test Case"
 
     def test_add_vehicle_and_evidence(self):
-        from pycrash_ai.routes import cases
+        from crashout.routes import cases
         cases._store = None
 
         # Create case
@@ -590,7 +590,7 @@ class TestCaseAPI:
         assert data[0]["key"] == "estimated_speed_mph"
 
     def test_gaps_endpoint(self):
-        from pycrash_ai.routes import cases
+        from crashout.routes import cases
         cases._store = None
 
         client.post("/api/v1/cases", json={"case_id": "api-test-003"})
@@ -605,7 +605,7 @@ class TestCaseAPI:
         assert "weight" in gaps[0]["missing"]
 
     def test_export_endpoint(self):
-        from pycrash_ai.routes import cases
+        from crashout.routes import cases
         cases._store = None
 
         client.post("/api/v1/cases", json={"case_id": "api-test-004"})
@@ -620,7 +620,7 @@ class TestCaseAPI:
         assert data["case_id"] == "api-test-004"
 
     def test_project_endpoint(self):
-        from pycrash_ai.routes import cases
+        from crashout.routes import cases
         cases._store = None
 
         client.post("/api/v1/cases", json={"case_id": "api-test-005"})
@@ -641,7 +641,7 @@ class TestCaseAPI:
         assert projection[0]["input_dict"]["striking"] is True
 
     def test_case_not_found(self):
-        from pycrash_ai.routes import cases
+        from crashout.routes import cases
         cases._store = None
 
         r = client.get("/api/v1/cases/nonexistent")
@@ -652,7 +652,7 @@ class TestHypergraphAPI:
     """Test hypergraph API endpoints — all 6 layers via HTTP."""
 
     def _reset(self):
-        from pycrash_ai.routes import cases
+        from crashout.routes import cases
         cases._store = None
 
     def test_temporal_api(self):
@@ -783,7 +783,7 @@ class TestPipelineWithGraph:
     """Test that pipeline now builds a case graph."""
 
     def test_pipeline_builds_graph(self):
-        from pycrash_ai.routes import cases
+        from crashout.routes import cases
         cases._store = None
 
         r = client.post("/api/v1/pipeline", json={
@@ -829,43 +829,43 @@ class TestVehicleLookup:
 
 class TestConfig:
     def test_defaults_loaded(self):
-        from pycrash_ai.config import settings
+        from crashout.config import settings
         assert settings.default_dt_motion == 0.01
         assert settings.default_mu_max == 0.8
         assert settings.env == "development"
 
     def test_reports_dir_default(self):
-        from pycrash_ai.config import settings
+        from crashout.config import settings
         assert settings.reports_dir == "/app/reports"
 
 
 class TestModels:
     def test_sdof_request_validation(self):
-        from pycrash_ai.models import SDOFRequest
+        from crashout.models import SDOFRequest
         req = SDOFRequest(w1=3400, w2=2900, v1=30, v2=0, cor=0.15, k=50000, tstop=0.5)
         assert req.w1 == 3400
 
     def test_sdof_request_rejects_negative_weight(self):
-        from pycrash_ai.models import SDOFRequest
+        from crashout.models import SDOFRequest
         import pytest
         with pytest.raises(Exception):
             SDOFRequest(w1=-100, w2=2900, v1=30, v2=0, cor=0.15, k=50000, tstop=0.5)
 
     def test_sdof_request_rejects_bad_cor(self):
-        from pycrash_ai.models import SDOFRequest
+        from crashout.models import SDOFRequest
         import pytest
         with pytest.raises(Exception):
             SDOFRequest(w1=3400, w2=2900, v1=30, v2=0, cor=1.5, k=50000, tstop=0.5)
 
     def test_extracted_vehicle_optional_fields(self):
-        from pycrash_ai.models import ExtractedVehicle
+        from crashout.models import ExtractedVehicle
         veh = ExtractedVehicle()
         assert veh.year is None
         assert veh.make is None
         assert veh.confidence == 0.0
 
     def test_extraction_response_structure(self):
-        from pycrash_ai.models import ExtractionResponse, ExtractedVehicle
+        from crashout.models import ExtractionResponse, ExtractedVehicle
         resp = ExtractionResponse(
             vehicles=[ExtractedVehicle(make="Toyota", model="Camry")],
             scene=None,
@@ -877,14 +877,14 @@ class TestModels:
 
 class TestSchema:
     def test_node_labels_exist(self):
-        from pycrash_ai.graph.schema import NodeLabel
+        from crashout.graph.schema import NodeLabel
         assert NodeLabel.VEHICLE == "Vehicle"
         assert NodeLabel.EVENT == "Event"
         assert NodeLabel.FACTOR == "Factor"
         assert NodeLabel.DELTA_V == "DeltaV"
 
     def test_graph_layers(self):
-        from pycrash_ai.graph.schema import GraphLayer
+        from crashout.graph.schema import GraphLayer
         layers = [l.value for l in GraphLayer]
         assert "entity" in layers
         assert "temporal" in layers
@@ -894,7 +894,7 @@ class TestSchema:
         assert "physical" in layers
 
     def test_node_layer_mapping(self):
-        from pycrash_ai.graph.schema import NODE_LAYER, NodeLabel, GraphLayer
+        from crashout.graph.schema import NODE_LAYER, NodeLabel, GraphLayer
         assert NODE_LAYER[NodeLabel.VEHICLE] == GraphLayer.ENTITY
         assert NODE_LAYER[NodeLabel.EVENT] == GraphLayer.TEMPORAL
         assert NODE_LAYER[NodeLabel.POSITION] == GraphLayer.SPATIAL
@@ -903,24 +903,24 @@ class TestSchema:
         assert NODE_LAYER[NodeLabel.FORCE] == GraphLayer.PHYSICAL
 
     def test_evidence_to_pycrash_mapping(self):
-        from pycrash_ai.graph.schema import EVIDENCE_TO_PYCRASH
+        from crashout.graph.schema import EVIDENCE_TO_PYCRASH
         # Speed conversion: 35 mph -> 51.33 fps
         key, converter = EVIDENCE_TO_PYCRASH["estimated_speed_mph"]
         assert key == "vx_initial"
         assert abs(converter(35) - 51.33345) < 0.01
 
     def test_crash_phases(self):
-        from pycrash_ai.graph.schema import CrashPhase
+        from crashout.graph.schema import CrashPhase
         assert CrashPhase.FIRST_CONTACT == "first_contact"
         assert CrashPhase.REST == "rest"
 
     def test_contributing_factors(self):
-        from pycrash_ai.graph.schema import ContributingFactor
+        from crashout.graph.schema import ContributingFactor
         assert ContributingFactor.EXCESSIVE_SPEED == "excessive_speed"
         assert ContributingFactor.DISTRACTION == "distraction"
 
     def test_required_vehicle_params(self):
-        from pycrash_ai.graph.schema import REQUIRED_VEHICLE_PARAMS
+        from crashout.graph.schema import REQUIRED_VEHICLE_PARAMS
         assert "weight" in REQUIRED_VEHICLE_PARAMS
         assert "wb" in REQUIRED_VEHICLE_PARAMS
         assert "izz" in REQUIRED_VEHICLE_PARAMS
@@ -928,18 +928,18 @@ class TestSchema:
 
 class TestTools:
     def test_tool_definitions_exist(self):
-        from pycrash_ai.agent.tools import ALL_TOOLS
+        from crashout.agent.tools import ALL_TOOLS
         assert len(ALL_TOOLS) >= 3
 
     def test_tool_has_required_fields(self):
-        from pycrash_ai.agent.tools import ALL_TOOLS
+        from crashout.agent.tools import ALL_TOOLS
         for tool in ALL_TOOLS:
             assert "name" in tool
             assert "description" in tool
             assert "input_schema" in tool
 
     def test_extract_vehicle_tool(self):
-        from pycrash_ai.agent.tools import ALL_TOOLS
+        from crashout.agent.tools import ALL_TOOLS
         vehicle_tools = [t for t in ALL_TOOLS if t["name"] == "extract_vehicle"]
         assert len(vehicle_tools) == 1
         schema = vehicle_tools[0]["input_schema"]
@@ -948,7 +948,7 @@ class TestTools:
 
 class TestHeuristicExtraction:
     def test_extracts_speeds(self):
-        from pycrash_ai.agent.extraction_agent import _heuristic_extraction
+        from crashout.agent.extraction_agent import _heuristic_extraction
         result = _heuristic_extraction(
             "Vehicle 1 was traveling at approximately 45 mph when it struck Vehicle 2 which was going 20 mph"
         )
@@ -960,7 +960,7 @@ class TestHeuristicExtraction:
         assert result.vehicles[1].role == "struck"
 
     def test_extracts_vehicle_info(self):
-        from pycrash_ai.agent.extraction_agent import _heuristic_extraction
+        from crashout.agent.extraction_agent import _heuristic_extraction
         result = _heuristic_extraction(
             "A 2020 Toyota Camry rear-ended a 2019 Honda Civic on dry asphalt"
         )
@@ -970,7 +970,7 @@ class TestHeuristicExtraction:
         assert result.crash_type == "rear_end"
 
     def test_handles_empty_text(self):
-        from pycrash_ai.agent.extraction_agent import _heuristic_extraction
+        from crashout.agent.extraction_agent import _heuristic_extraction
         result = _heuristic_extraction("No vehicle information here at all.")
         assert result is not None
         assert isinstance(result.vehicles, list)

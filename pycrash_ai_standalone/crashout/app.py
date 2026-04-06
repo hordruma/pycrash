@@ -1,4 +1,4 @@
-"""PycrashAI - FastAPI application."""
+"""Crashout - FastAPI application."""
 from __future__ import annotations
 
 import logging
@@ -11,13 +11,13 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import os
 
-from pycrash_ai.routes import simulate, extract, montecarlo, report, vehicles, pipeline, cases
-from pycrash_ai.config import settings
+from crashout.routes import simulate, extract, montecarlo, report, vehicles, pipeline, cases
+from crashout.config import settings
 
-logger = logging.getLogger("pycrash_ai")
+logger = logging.getLogger("crashout")
 
 app = FastAPI(
-    title="PycrashAI",
+    title="Crashout",
     description="AI-powered crash reconstruction platform",
     version="0.1.0",
 )

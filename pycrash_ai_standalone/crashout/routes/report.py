@@ -8,8 +8,8 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException
 
-from pycrash_ai.models import ReportRequest, ReportResponse
-from pycrash_ai.config import settings
+from crashout.models import ReportRequest, ReportResponse
+from crashout.config import settings
 
 router = APIRouter()
 
@@ -48,7 +48,7 @@ def generate_report(req: ReportRequest):
         mc_data=mc_data,
         case_number=req.case_number or f"CASE-{report_id}",
         case_title=req.case_title or "Crash Reconstruction Analysis",
-        analyst_name=req.analyst_name or "PycrashAI",
+        analyst_name=req.analyst_name or "Crashout",
         date_of_loss=req.date_of_loss,
     )
 
@@ -165,7 +165,7 @@ def _build_report_html(
 
     <h2>1. Purpose</h2>
     <p>This report presents the results of a crash reconstruction analysis performed using
-    the PycrashAI platform. The analysis employs a Single Degree of Freedom (SDOF) collision
+    the Crashout platform. The analysis employs a Single Degree of Freedom (SDOF) collision
     model to determine impact severity, including change in velocity (delta-V), peak
     deceleration, and mutual crush.</p>
 
@@ -223,14 +223,14 @@ def _build_report_html(
     duration of {sim_data.get('impact_duration_ms', 'N/A')} ms.</p>
 
     <div class="disclaimer">
-        <strong>Disclaimer:</strong> This report was generated using PycrashAI, an open-source
+        <strong>Disclaimer:</strong> This report was generated using Crashout, an open-source
         crash reconstruction platform. The SDOF model and underlying physics are based on
         published, peer-reviewed methodologies. All algorithms are transparent and reproducible.
         The numerical results were computed by the pycrash simulation engine; narrative sections
         were generated to describe those results. This report should be reviewed by a qualified
         crash reconstruction professional before use in litigation or insurance proceedings.
         <br><br>
-        <strong>Software:</strong> pycrash v0.0.18 | PycrashAI v0.1.0<br>
+        <strong>Software:</strong> pycrash v0.0.18 | Crashout v0.1.0<br>
         <strong>Generated:</strong> {now}
     </div>
 </body>

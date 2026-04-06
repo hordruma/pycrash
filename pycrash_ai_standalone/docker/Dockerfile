@@ -20,7 +20,7 @@ COPY pyproject.toml README.md ./
 RUN pip install --no-cache-dir ".[dev]"
 
 # Copy platform code
-COPY pycrash_ai/ pycrash_ai/
+COPY crashout/ crashout/
 
 # Run as non-root user
 RUN useradd --create-home appuser \

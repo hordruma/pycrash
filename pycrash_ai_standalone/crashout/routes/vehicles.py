@@ -7,7 +7,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
-from pycrash_ai.models import VehicleLookupResponse
+from crashout.models import VehicleLookupResponse
 
 router = APIRouter()
 

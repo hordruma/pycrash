@@ -1,6 +1,6 @@
-# PycrashAI - AI-Powered Crash Reconstruction
+# Crashout - AI-Powered Crash Reconstruction
 
-Upload a police crash report, and PycrashAI uses AI to extract the vehicle and scene data, runs a physics-based crash simulation, and presents the results in a web interface. No engineering background required -- just paste a report and get answers like speed change (delta-V), peak force, and crush depth.
+Upload a police crash report, and Crashout uses AI to extract the vehicle and scene data, runs a physics-based crash simulation, and presents the results in a web interface. No engineering background required -- just paste a report and get answers like speed change (delta-V), peak force, and crush depth.
 
 ## Features
 
@@ -23,8 +23,8 @@ This is the easiest way to get everything running.
 ### Steps
 
 ```bash
-git clone https://github.com/hordruma/pycrash-ai.git
-cd pycrash-ai
+git clone https://github.com/hordruma/crashout.git
+cd crashout
 ```
 
 Optionally, create a `.env` file in the `docker/` folder with your API key:
@@ -55,10 +55,10 @@ To stop, press `Ctrl+C` in the terminal, or run `docker compose down`.
 ## Quick Start without Docker (for developers)
 
 ```bash
-git clone https://github.com/hordruma/pycrash-ai.git
-cd pycrash-ai
+git clone https://github.com/hordruma/crashout.git
+cd crashout
 pip install -e ".[dev]"
-uvicorn pycrash_ai.app:app --reload --port 8100
+uvicorn crashout.app:app --reload --port 8100
 ```
 
 Open **http://localhost:8100** in your browser.
@@ -76,18 +76,18 @@ You can try out every endpoint directly from your browser -- no extra tools need
 ## Project Structure
 
 ```
-pycrash_ai/          Main application package
-pycrash_ai/routes/   FastAPI endpoints (simulation, extraction, cases, reports)
-pycrash_ai/graph/    6-layer hypergraph for case evidence management
-pycrash_ai/agent/    LLM-powered extraction from crash reports
-pycrash_ai/static/   Web UI files
-pycrash_ai/tasks/    Celery workers for async jobs (Monte Carlo, reports)
+crashout/          Main application package
+crashout/routes/   FastAPI endpoints (simulation, extraction, cases, reports)
+crashout/graph/    6-layer hypergraph for case evidence management
+crashout/agent/    LLM-powered extraction from crash reports
+crashout/static/   Web UI files
+crashout/tasks/    Celery workers for async jobs (Monte Carlo, reports)
 docker/              Docker Compose configuration
 ```
 
 ## Built On
 
-PycrashAI is built on top of [pycrash](https://pypi.org/project/pycrash/) ([GitHub](https://github.com/hordruma/pycrash)), a 2D vehicle crash simulation library used in forensic accident reconstruction. The physics engine handles tire models, vehicle dynamics, and three collision models (SDOF, impulse-momentum, and sideswipe).
+Crashout is built on top of [pycrash](https://pypi.org/project/pycrash/) ([GitHub](https://github.com/hordruma/pycrash)), a 2D vehicle crash simulation library used in forensic accident reconstruction. The physics engine handles tire models, vehicle dynamics, and three collision models (SDOF, impulse-momentum, and sideswipe).
 
 ## License
 

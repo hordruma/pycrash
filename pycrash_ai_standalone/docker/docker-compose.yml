@@ -1,62 +1,62 @@
-name: pycrash-ai
+name: crashout
 
 services:
-  pycrash-api:
-    container_name: pycrash-api
-    image: pycrash-ai/api:dev
+  crashout-api:
+    container_name: crashout-api
+    image: crashout/api:dev
     build:
       context: ..
       dockerfile: docker/Dockerfile
     ports:
       - "8100:8000"
     volumes:
-      - ../pycrash_ai:/app/pycrash_ai:ro
-      - pycrash-reports:/app/reports
-      - pycrash-cases:/app/data/cases
+      - ../crashout:/app/crashout:ro
+      - crashout-reports:/app/reports
+      - crashout-cases:/app/data/cases
     environment:
-      - REDIS_URL=redis://pycrash-redis:6379/0
-      - FALKORDB_URL=redis://pycrash-falkordb:6379/0
+      - REDIS_URL=redis://crashout-redis:6379/0
+      - FALKORDB_URL=redis://crashout-falkordb:6379/0
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - PYCRASH_ENV=development
       - PYCRASH_CASES_DIR=/app/data/cases
     depends_on:
-      pycrash-redis:
+      crashout-redis:
         condition: service_healthy
-      pycrash-falkordb:
+      crashout-falkordb:
         condition: service_healthy
-    command: python -m uvicorn pycrash_ai.app:app --host 0.0.0.0 --port 8000 --reload
+    command: python -m uvicorn crashout.app:app --host 0.0.0.0 --port 8000 --reload
     networks:
-      - pycrash-net
+      - crashout-net
 
-  pycrash-worker:
-    container_name: pycrash-worker
-    image: pycrash-ai/worker:dev
+  crashout-worker:
+    container_name: crashout-worker
+    image: crashout/worker:dev
     build:
       context: ..
       dockerfile: docker/Dockerfile
     volumes:
-      - ../pycrash_ai:/app/pycrash_ai:ro
-      - pycrash-reports:/app/reports
-      - pycrash-cases:/app/data/cases
+      - ../crashout:/app/crashout:ro
+      - crashout-reports:/app/reports
+      - crashout-cases:/app/data/cases
     environment:
-      - REDIS_URL=redis://pycrash-redis:6379/0
-      - FALKORDB_URL=redis://pycrash-falkordb:6379/0
+      - REDIS_URL=redis://crashout-redis:6379/0
+      - FALKORDB_URL=redis://crashout-falkordb:6379/0
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - PYCRASH_ENV=development
       - PYCRASH_CASES_DIR=/app/data/cases
     depends_on:
-      pycrash-redis:
+      crashout-redis:
         condition: service_healthy
-      pycrash-falkordb:
+      crashout-falkordb:
         condition: service_healthy
-    command: python -m celery -A pycrash_ai.tasks.worker worker --loglevel=info --concurrency=4
+    command: python -m celery -A crashout.tasks.worker worker --loglevel=info --concurrency=4
     networks:
-      - pycrash-net
+      - crashout-net
 
-  pycrash-redis:
-    container_name: pycrash-redis
+  crashout-redis:
+    container_name: crashout-redis
     image: redis:7-alpine
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -64,28 +64,28 @@ services:
       timeout: 3s
       retries: 5
     networks:
-      - pycrash-net
+      - crashout-net
 
-  pycrash-falkordb:
-    container_name: pycrash-falkordb
+  crashout-falkordb:
+    container_name: crashout-falkordb
     image: falkordb/falkordb:latest
     ports:
       - "6390:6379"
     volumes:
-      - pycrash-falkordb-data:/data
+      - crashout-falkordb-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
     networks:
-      - pycrash-net
+      - crashout-net
 
 networks:
-  pycrash-net:
-    name: pycrash-net
+  crashout-net:
+    name: crashout-net
 
 volumes:
-  pycrash-reports:
-  pycrash-cases:
-  pycrash-falkordb-data:
+  crashout-reports:
+  crashout-cases:
+  crashout-falkordb-data:

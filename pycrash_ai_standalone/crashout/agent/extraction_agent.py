@@ -11,13 +11,13 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Optional
 
-from pycrash_ai.agent.llm_provider import get_provider, LLMResponse
-from pycrash_ai.agent.tools import ALL_TOOLS
-from pycrash_ai.agent.ingest import (
+from crashout.agent.llm_provider import get_provider, LLMResponse
+from crashout.agent.tools import ALL_TOOLS
+from crashout.agent.ingest import (
     IngestedDocument, ingest_text, ingest_pdf, ingest_image,
     build_extraction_messages, build_openai_messages,
 )
-from pycrash_ai.models import ExtractionResponse, ExtractedVehicle, ExtractedScene
+from crashout.models import ExtractionResponse, ExtractedVehicle, ExtractedScene
 
 
 # Maximum input length for crash reports (characters)

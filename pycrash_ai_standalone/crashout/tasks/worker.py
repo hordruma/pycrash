@@ -1,6 +1,6 @@
 """Celery worker configuration."""
 from celery import Celery
-from pycrash_ai.config import settings
+from crashout.config import settings
 
 app = Celery(
     "pycrash_worker",
@@ -20,4 +20,4 @@ app.conf.update(
 )
 
 # Auto-discover tasks
-app.conf.include = ["pycrash_ai.tasks.simulation_tasks"]
+app.conf.include = ["crashout.tasks.simulation_tasks"]

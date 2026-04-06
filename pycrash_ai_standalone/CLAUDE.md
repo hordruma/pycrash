@@ -1,15 +1,15 @@
-# CLAUDE.md - PycrashAI Development Guide
+# CLAUDE.md - Crashout Development Guide
 
 ## What This Is
 
-PycrashAI is an AI-powered vehicle crash reconstruction web platform built on top of the [pycrash](https://pypi.org/project/pycrash/) physics engine. It provides a web UI, REST API, LLM-powered report extraction, and case management for accident reconstruction professionals and non-technical users.
+Crashout is an AI-powered vehicle crash reconstruction web platform built on top of the [pycrash](https://pypi.org/project/pycrash/) physics engine. It provides a web UI, REST API, LLM-powered report extraction, and case management for accident reconstruction professionals and non-technical users.
 
 **License:** GPLv3 | **Python:** >=3.9 | **Version:** 0.1.0
 
 ## Repository Layout
 
 ```
-pycrash_ai/                     # Main package
+crashout/                     # Main package
   app.py                        # FastAPI application entry point
   config.py                     # App-wide configuration (env vars, defaults)
   models.py                     # Pydantic request/response models
@@ -108,7 +108,7 @@ docker compose up --build
 
 # Without Docker
 pip install -e ".[dev]"
-uvicorn pycrash_ai.app:app --reload --port 8100
+uvicorn crashout.app:app --reload --port 8100
 # Note: Monte Carlo async and Reports require Celery + Redis (use Docker)
 ```
 
