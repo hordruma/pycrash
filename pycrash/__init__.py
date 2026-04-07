@@ -13,3 +13,9 @@ try:
     from . import beamng
 except ImportError:
     pass
+
+# OpenSim biomechanical integration (optional - requires opensim)
+try:
+    from . import opensim
+except ImportError:
+    pass
