@@ -1,0 +1,261 @@
+<div x-data="simulatorApp()" x-init="initAnimation()">
+  <!-- Header -->
+  <div class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-900">Crash Simulator</h1>
+    <p class="mt-1 text-gray-500">Watch two vehicles collide — tweak the sliders and smash!</p>
+  </div>
+
+  <!-- Animation Canvas -->
+  <div class="bg-gray-900 rounded-2xl p-4 mb-8 shadow-xl overflow-hidden">
+    <canvas id="crash-canvas" width="800" height="340" class="w-full rounded-xl"></canvas>
+    <div class="flex justify-center gap-4 mt-3">
+      <button @click="replayAnimation()" x-show="results"
+              class="text-sm text-gray-400 hover:text-white transition-colors">
+        <i class="fas fa-redo mr-1"></i> Replay
+      </button>
+    </div>
+  </div>
+
+  <!-- Vehicle Setup Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <!-- Car 1 -->
+    <div class="bg-white rounded-xl shadow-md border-l-4 border-blue-500 p-6">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+          <i class="fas fa-car text-blue-500 text-lg"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-gray-800">Car 1</h2>
+          <p class="text-xs text-gray-400">The striking vehicle</p>
+        </div>
+      </div>
+
+      <div class="space-y-5">
+        <div>
+          <div class="flex justify-between text-sm mb-1">
+            <span class="font-medium text-gray-700">How heavy?</span>
+            <span class="text-blue-600 font-bold" x-text="Number(w1).toLocaleString() + ' lb'"></span>
+          </div>
+          <input type="range" x-model="w1" min="1500" max="8000" step="100"
+                 class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-500">
+          <div class="flex justify-between text-xs text-gray-400 mt-0.5">
+            <span>Compact</span><span>SUV</span><span>Truck</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between text-sm mb-1">
+            <span class="font-medium text-gray-700">How fast?</span>
+            <span class="text-blue-600 font-bold" x-text="v1 + ' mph'"></span>
+          </div>
+          <input type="range" x-model="v1" min="0" max="100" step="1"
+                 class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-500">
+          <div class="flex justify-between text-xs text-gray-400 mt-0.5">
+            <span>Stopped</span><span>City</span><span>Highway</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between text-sm mb-1">
+            <span class="font-medium text-gray-700">Braking?</span>
+            <span class="text-blue-600 font-bold" x-text="Math.round(v1_brake * 100) + '%'"></span>
+          </div>
+          <input type="range" x-model="v1_brake" min="0" max="1" step="0.1"
+                 class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-blue-500">
+          <div class="flex justify-between text-xs text-gray-400 mt-0.5">
+            <span>None</span><span>Full brakes</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Car 2 -->
+    <div class="bg-white rounded-xl shadow-md border-l-4 border-red-500 p-6">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+          <i class="fas fa-car text-red-500 text-lg"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-gray-800">Car 2</h2>
+          <p class="text-xs text-gray-400">The struck vehicle</p>
+        </div>
+      </div>
+
+      <div class="space-y-5">
+        <div>
+          <div class="flex justify-between text-sm mb-1">
+            <span class="font-medium text-gray-700">How heavy?</span>
+            <span class="text-red-600 font-bold" x-text="Number(w2).toLocaleString() + ' lb'"></span>
+          </div>
+          <input type="range" x-model="w2" min="1500" max="8000" step="100"
+                 class="w-full h-2 bg-red-100 rounded-lg appearance-none cursor-pointer accent-red-500">
+          <div class="flex justify-between text-xs text-gray-400 mt-0.5">
+            <span>Compact</span><span>SUV</span><span>Truck</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between text-sm mb-1">
+            <span class="font-medium text-gray-700">How fast?</span>
+            <span class="text-red-600 font-bold" x-text="v2 == 0 ? 'Stopped' : v2 + ' mph'"></span>
+          </div>
+          <input type="range" x-model="v2" min="0" max="100" step="1"
+                 class="w-full h-2 bg-red-100 rounded-lg appearance-none cursor-pointer accent-red-500">
+          <div class="flex justify-between text-xs text-gray-400 mt-0.5">
+            <span>Stopped</span><span>City</span><span>Highway</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between text-sm mb-1">
+            <span class="font-medium text-gray-700">Braking?</span>
+            <span class="text-red-600 font-bold" x-text="Math.round(v2_brake * 100) + '%'"></span>
+          </div>
+          <input type="range" x-model="v2_brake" min="0" max="1" step="0.1"
+                 class="w-full h-2 bg-red-100 rounded-lg appearance-none cursor-pointer accent-red-500">
+          <div class="flex justify-between text-xs text-gray-400 mt-0.5">
+            <span>None</span><span>Full brakes</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Advanced Settings (collapsible) -->
+  <details class="bg-white rounded-xl shadow-md p-5 mb-6">
+    <summary class="cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-800">
+      <i class="fas fa-cog mr-1"></i> Advanced Crash Settings
+    </summary>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Stiffness (lb/ft)
+          <span class="text-xs text-gray-400 ml-1" title="How stiff are the vehicles' structures">?</span>
+        </label>
+        <input type="number" x-model="k"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Bounciness (COR)
+          <span class="text-xs text-gray-400 ml-1" title="0 = cars stick together, 1 = perfect bounce">?</span>
+        </label>
+        <input type="number" x-model="cor" step="0.05" min="0" max="1"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Sim Duration (s)
+          <span class="text-xs text-gray-400 ml-1" title="How long to run the simulation">?</span>
+        </label>
+        <input type="number" x-model="tstop" step="0.1"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+      </div>
+    </div>
+  </details>
+
+  <!-- THE BIG BUTTON -->
+  <div class="flex justify-center mb-8">
+    <button @click="runAndAnimate()"
+            :disabled="loading"
+            class="group relative px-12 py-5 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white text-2xl font-black rounded-2xl shadow-lg hover:shadow-2xl transform hover:scale-105 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+      <span x-show="!loading" class="flex items-center gap-3">
+        <i class="fas fa-car-burst"></i>
+        CRASH!
+        <i class="fas fa-car-burst" style="transform: scaleX(-1)"></i>
+      </span>
+      <span x-show="loading" class="flex items-center gap-3">
+        <i class="fas fa-spinner fa-spin"></i>
+        Simulating...
+      </span>
+    </button>
+  </div>
+
+  <!-- Error Alert -->
+  <div x-show="error" x-cloak
+       class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start">
+    <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-3"></i>
+    <span class="text-red-700" x-text="error"></span>
+  </div>
+
+  <!-- Results Section -->
+  <div x-show="results" x-cloak x-transition>
+    <!-- Big Delta-V Display -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div class="bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl p-6 text-white text-center shadow-lg">
+        <p class="text-blue-200 text-sm font-medium mb-1">Car 1 Speed Change</p>
+        <p class="text-5xl font-black">
+          <span x-text="results ? results.delta_v1_mph?.toFixed(1) : '--'"></span>
+          <span class="text-2xl font-normal">mph</span>
+        </p>
+        <p class="text-blue-200 text-sm mt-2" x-text="getSeverityLabel(results?.delta_v1_mph)"></p>
+      </div>
+      <div class="bg-gradient-to-br from-red-500 to-red-700 rounded-2xl p-6 text-white text-center shadow-lg">
+        <p class="text-red-200 text-sm font-medium mb-1">Car 2 Speed Change</p>
+        <p class="text-5xl font-black">
+          <span x-text="results ? results.delta_v2_mph?.toFixed(1) : '--'"></span>
+          <span class="text-2xl font-normal">mph</span>
+        </p>
+        <p class="text-red-200 text-sm mt-2" x-text="getSeverityLabel(results?.delta_v2_mph)"></p>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white rounded-xl shadow p-4 text-center">
+        <p class="text-xs text-gray-400 uppercase tracking-wider">Peak Force</p>
+        <p class="text-xl font-bold text-gray-800 mt-1" x-text="results ? formatForce(results.peak_force_lb) : '--'"></p>
+        <p class="text-xs text-gray-400 mt-1" x-text="results ? getForceComparison(results.peak_force_lb) : ''"></p>
+      </div>
+      <div class="bg-white rounded-xl shadow p-4 text-center">
+        <p class="text-xs text-gray-400 uppercase tracking-wider">Crush Depth</p>
+        <p class="text-xl font-bold text-orange-600 mt-1">
+          <span x-text="results ? results.peak_crush_ft?.toFixed(2) : '--'"></span> ft
+        </p>
+        <p class="text-xs text-gray-400 mt-1" x-text="results ? (results.peak_crush_ft * 12).toFixed(1) + ' inches' : ''"></p>
+      </div>
+      <div class="bg-white rounded-xl shadow p-4 text-center">
+        <p class="text-xs text-gray-400 uppercase tracking-wider">Car 1 G-Force</p>
+        <p class="text-xl font-bold text-blue-600 mt-1">
+          <span x-text="results ? results.peak_accel_v1_g?.toFixed(1) : '--'"></span> g
+        </p>
+        <p class="text-xs text-gray-400 mt-1" x-text="results ? getGForceComparison(results.peak_accel_v1_g) : ''"></p>
+      </div>
+      <div class="bg-white rounded-xl shadow p-4 text-center">
+        <p class="text-xs text-gray-400 uppercase tracking-wider">Car 2 G-Force</p>
+        <p class="text-xl font-bold text-red-600 mt-1">
+          <span x-text="results ? results.peak_accel_v2_g?.toFixed(1) : '--'"></span> g
+        </p>
+        <p class="text-xs text-gray-400 mt-1" x-text="results ? getGForceComparison(results.peak_accel_v2_g) : ''"></p>
+      </div>
+    </div>
+
+    <!-- Technical Charts (collapsed by default) -->
+    <details class="bg-white rounded-xl shadow-md p-5 mb-6">
+      <summary class="cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-800">
+        <i class="fas fa-chart-line mr-1"></i> Show Technical Charts
+        <span class="text-xs text-gray-400 ml-2">(requires async mode)</span>
+      </summary>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        <div>
+          <h3 class="text-xs font-semibold text-gray-500 mb-2 uppercase">Velocity vs Time</h3>
+          <div id="velocity-chart" class="h-64"></div>
+        </div>
+        <div>
+          <h3 class="text-xs font-semibold text-gray-500 mb-2 uppercase">Impact Force</h3>
+          <div id="force-chart" class="h-64"></div>
+        </div>
+        <div>
+          <h3 class="text-xs font-semibold text-gray-500 mb-2 uppercase">Crush Displacement</h3>
+          <div id="crush-chart" class="h-64"></div>
+        </div>
+      </div>
+      <div class="mt-3 text-center">
+        <button @click="runAsync()"
+                class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+          <i class="fas fa-chart-line mr-1"></i> Load time-series charts
+        </button>
+      </div>
+    </details>
+  </div>
+</div>

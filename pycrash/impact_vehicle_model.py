@@ -1,18 +1,24 @@
+from __future__ import annotations
+from typing import Dict, Optional, TYPE_CHECKING
 from .model_calcs.tire_model import tire_forces
 import pandas as pd
 import numpy as np
 from scipy import integrate
 import math
 
+if TYPE_CHECKING:
+    from .vehicle import Vehicle
+
 """
 comprehensive vehicle model that can be used to run single vehicle motion as well as
 impact related motion
 """
 
-# TODO: ignore driver inputs after impact
-# TODO: disable tire after impact
 
-def multi_vehicle_model(veh, i, sim_defaults, impact_type, ignore_driver=False, kmutual=None, vehicle_mu=None):
+def multi_vehicle_model(veh: 'Vehicle', i: int, sim_defaults: Dict[str, float],
+                        impact_type: str, ignore_driver: bool = False,
+                        kmutual: Optional[float] = None,
+                        vehicle_mu: Optional[float] = None) -> 'Vehicle':
     """
     Calculate vehicle dynamics from driver inputs and environmental inputs
     vehicle_list is a list of vehicle class instances [veh1, veh2] - two currently

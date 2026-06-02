@@ -1,0 +1,91 @@
+name: crashout
+
+services:
+  crashout-api:
+    container_name: crashout-api
+    image: crashout/api:dev
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8100:8000"
+    volumes:
+      - ../crashout:/app/crashout:ro
+      - crashout-reports:/app/reports
+      - crashout-cases:/app/data/cases
+    environment:
+      - REDIS_URL=redis://crashout-redis:6379/0
+      - FALKORDB_URL=redis://crashout-falkordb:6379/0
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - PYCRASH_ENV=development
+      - PYCRASH_CASES_DIR=/app/data/cases
+    depends_on:
+      crashout-redis:
+        condition: service_healthy
+      crashout-falkordb:
+        condition: service_healthy
+    command: python -m uvicorn crashout.app:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - crashout-net
+
+  crashout-worker:
+    container_name: crashout-worker
+    image: crashout/worker:dev
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ../crashout:/app/crashout:ro
+      - crashout-reports:/app/reports
+      - crashout-cases:/app/data/cases
+    environment:
+      - REDIS_URL=redis://crashout-redis:6379/0
+      - FALKORDB_URL=redis://crashout-falkordb:6379/0
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - PYCRASH_ENV=development
+      - PYCRASH_CASES_DIR=/app/data/cases
+    depends_on:
+      crashout-redis:
+        condition: service_healthy
+      crashout-falkordb:
+        condition: service_healthy
+    command: python -m celery -A crashout.tasks.worker worker --loglevel=info --concurrency=4
+    networks:
+      - crashout-net
+
+  crashout-redis:
+    container_name: crashout-redis
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - crashout-net
+
+  crashout-falkordb:
+    container_name: crashout-falkordb
+    image: falkordb/falkordb:latest
+    ports:
+      - "6390:6379"
+    volumes:
+      - crashout-falkordb-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - crashout-net
+
+networks:
+  crashout-net:
+    name: crashout-net
+
+volumes:
+  crashout-reports:
+  crashout-cases:
+  crashout-falkordb-data:

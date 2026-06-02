@@ -4,29 +4,27 @@ accounts for pitch due to braking and roll from cornering forces
 
 Dependencies - v, vx, vy, au, av, omega, constants
 """
-
+from __future__ import annotations
+from typing import Any, Dict, TYPE_CHECKING
 import math
 import numpy as np
-import math
 
-"""
-TODO: detailed suspension properties
-roll_rate = 6    # semi-firm 7 = semi soft, 3 = extremely firm (corvette) (degrees / g)
-rc_cg = 18/12    # passenger car - roll center to cg height (h1)  (ft)
-roll_h = 6/12    # roll center height
-"""
+if TYPE_CHECKING:
+    from pycrash.vehicle import Vehicle
 
-def sign(x):
-    # returns the sign of a number
+
+def sign(x: float) -> int:
+    """returns the sign of a number"""
     if x > 0:
         return 1
     elif x < 0:
         return -1
     elif x == 0:
         return 0
+    return 0
 
 
-def tire_forces(veh, i, sim_defaults):
+def tire_forces(veh: 'Vehicle', i: int, sim_defaults: Dict[str, float]) -> 'Vehicle':
     """
     calculate tire forces for the given time step
     """
@@ -116,7 +114,7 @@ def tire_forces(veh, i, sim_defaults):
     elif veh.rwd == 1:
         rf_app = -1 * veh.model.rf_fz[i] * (mu_max * veh.driver_input.brake[i] * sign(rf_vx))  # rear wheel drive, front wheel will not apply accelerative force
     elif veh.awd == 1:
-        rf_app = veh.model.rf_fz[i] * (mu_max * (veh.driver_input.throttle[i]) - veh.driver_input.brake[i] * sign(rf_vx))
+        rf_app = veh.model.rf_fz[i] * (mu_max * (veh.driver_input.throttle[i] - veh.driver_input.brake[i] * sign(rf_vx)))
 
     if math.sqrt(rf_app ** 2 + rf_latf ** 2) > mu_max * veh.model.rf_fz[i]:
         veh.model.rf_lock[i] = 1

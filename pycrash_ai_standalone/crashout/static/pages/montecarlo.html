@@ -1,0 +1,240 @@
+<div x-data="monteCarloApp()">
+  <!-- Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">Monte Carlo Uncertainty Analysis</h1>
+    <p class="mt-1 text-gray-500">Quantify reconstruction uncertainty with randomized parameter sampling</p>
+  </div>
+
+  <!-- Base Configuration -->
+  <div class="bg-white rounded-lg shadow p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">
+      <i class="fas fa-cogs text-gray-500 mr-2"></i>Base Configuration
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">V1 Weight (lb)</label>
+        <input type="number" x-model="base.w1"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">V1 Speed (mph)</label>
+        <input type="number" x-model="base.v1"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">V2 Weight (lb)</label>
+        <input type="number" x-model="base.w2"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">V2 Speed (mph)</label>
+        <input type="number" x-model="base.v2"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Stiffness (lb/ft)</label>
+        <input type="number" x-model="base.k"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">COR</label>
+        <input type="number" x-model="base.cor" step="0.05" min="0" max="1"
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+      </div>
+    </div>
+  </div>
+
+  <!-- Parameter Variations -->
+  <div class="bg-white rounded-lg shadow p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">
+      <i class="fas fa-random text-purple-500 mr-2"></i>Parameter Variations
+    </h2>
+
+    <!-- Variations Table -->
+    <template x-if="variations.length > 0">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
+            <tr>
+              <th class="px-4 py-3">Parameter</th>
+              <th class="px-4 py-3">Min Value</th>
+              <th class="px-4 py-3">Max Value</th>
+              <th class="px-4 py-3">Distribution</th>
+              <th class="px-4 py-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="(v, i) in variations" :key="i">
+              <tr class="border-b border-gray-100">
+                <td class="px-4 py-2">
+                  <select x-model="v.parameter"
+                          class="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500">
+                    <option value="v1">V1 Speed</option>
+                    <option value="v2">V2 Speed</option>
+                    <option value="w1">V1 Weight</option>
+                    <option value="w2">V2 Weight</option>
+                    <option value="k">Stiffness</option>
+                    <option value="cor">COR</option>
+                  </select>
+                </td>
+                <td class="px-4 py-2">
+                  <input type="number" x-model="v.min_value"
+                         class="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500">
+                </td>
+                <td class="px-4 py-2">
+                  <input type="number" x-model="v.max_value"
+                         class="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500">
+                </td>
+                <td class="px-4 py-2">
+                  <select x-model="v.distribution"
+                          class="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500">
+                    <option value="uniform">Uniform</option>
+                    <option value="normal">Normal</option>
+                    <option value="triangular">Triangular</option>
+                  </select>
+                </td>
+                <td class="px-4 py-2">
+                  <button @click="removeVariation(i)"
+                          class="text-red-500 hover:text-red-700 transition-colors"
+                          title="Remove variation">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </template>
+
+    <!-- Empty State -->
+    <template x-if="variations.length === 0">
+      <div class="text-center py-8 text-gray-400">
+        <i class="fas fa-layer-group text-3xl mb-2"></i>
+        <p>No parameter variations defined. Add at least one to run the analysis.</p>
+      </div>
+    </template>
+
+    <!-- Add Variation Button -->
+    <div class="mt-4">
+      <button @click="addVariation()"
+              class="px-4 py-2 bg-purple-50 text-purple-700 font-medium rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors text-sm">
+        <i class="fas fa-plus mr-1"></i>Add Variation
+      </button>
+    </div>
+  </div>
+
+  <!-- Number of Runs -->
+  <div class="bg-white rounded-lg shadow p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">
+      <i class="fas fa-hashtag text-gray-500 mr-2"></i>Number of Runs
+    </h2>
+    <div class="flex items-center gap-4">
+      <input type="number" x-model="n_runs" min="10" max="50000"
+             class="w-48 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+      <span class="text-sm text-gray-400">(10 - 50,000)</span>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="flex flex-wrap gap-3 mb-6">
+    <button @click="runMC()"
+            class="px-6 py-2.5 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors">
+      <i class="fas fa-play mr-2"></i>Run Analysis
+    </button>
+    <button @click="reset()"
+            class="px-6 py-2.5 bg-white text-gray-700 font-medium rounded-lg border border-gray-300 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
+      <i class="fas fa-undo mr-2"></i>Reset
+    </button>
+  </div>
+
+  <!-- Progress Bar -->
+  <div x-show="loading" x-cloak class="mb-6">
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-medium text-gray-700">Running Monte Carlo simulation...</span>
+        <span class="text-sm font-medium text-purple-600" x-text="Math.round(progress) + '%'"></span>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-3">
+        <div class="bg-blue-600 h-3 rounded-full transition-all duration-300"
+             :style="'width: ' + progress + '%'"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Alert -->
+  <div x-show="error" x-cloak
+       class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start">
+    <i class="fas fa-exclamation-circle text-red-500 mt-0.5 mr-3"></i>
+    <span class="text-red-700" x-text="error"></span>
+  </div>
+
+  <!-- Results -->
+  <div x-show="results" x-cloak>
+    <!-- Stats Summary -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-4">
+        <i class="fas fa-chart-bar text-purple-500 mr-2"></i>Statistical Summary
+      </h2>
+      <p class="text-sm text-gray-500 mb-4">
+        Completed <span class="font-semibold text-gray-700" x-text="results?.completed_runs"></span> runs
+      </p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
+            <tr>
+              <th class="px-4 py-3">Parameter</th>
+              <th class="px-4 py-3 text-right">Mean</th>
+              <th class="px-4 py-3 text-right">Std Dev</th>
+              <th class="px-4 py-3 text-right">5th %ile</th>
+              <th class="px-4 py-3 text-right">Median</th>
+              <th class="px-4 py-3 text-right">95th %ile</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr>
+              <td class="px-4 py-3 font-medium text-gray-800">Delta-V Vehicle 1 (mph)</td>
+              <td class="px-4 py-3 text-right" x-text="results?.delta_v1_mph?.mean?.toFixed(2)"></td>
+              <td class="px-4 py-3 text-right" x-text="results?.delta_v1_mph?.std?.toFixed(2)"></td>
+              <td class="px-4 py-3 text-right" x-text="results?.delta_v1_mph?.p5?.toFixed(2)"></td>
+              <td class="px-4 py-3 text-right" x-text="results?.delta_v1_mph?.p50?.toFixed(2)"></td>
+              <td class="px-4 py-3 text-right" x-text="results?.delta_v1_mph?.p95?.toFixed(2)"></td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium text-gray-800">Delta-V Vehicle 2 (mph)</td>
+              <td class="px-4 py-3 text-right" x-text="results?.delta_v2_mph?.mean?.toFixed(2)"></td>
+              <td class="px-4 py-3 text-right" x-text="results?.delta_v2_mph?.std?.toFixed(2)"></td>
+              <td class="px-4 py-3 text-right" x-text="results?.delta_v2_mph?.p5?.toFixed(2)"></td>
+              <td class="px-4 py-3 text-right" x-text="results?.delta_v2_mph?.p50?.toFixed(2)"></td>
+              <td class="px-4 py-3 text-right" x-text="results?.delta_v2_mph?.p95?.toFixed(2)"></td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium text-gray-800">Peak Crush (ft)</td>
+              <td class="px-4 py-3 text-right" x-text="results?.peak_crush_ft?.mean?.toFixed(3)"></td>
+              <td class="px-4 py-3 text-right" x-text="results?.peak_crush_ft?.std?.toFixed(3)"></td>
+              <td class="px-4 py-3 text-right" x-text="results?.peak_crush_ft?.p5?.toFixed(3)"></td>
+              <td class="px-4 py-3 text-right" x-text="results?.peak_crush_ft?.p50?.toFixed(3)"></td>
+              <td class="px-4 py-3 text-right" x-text="results?.peak_crush_ft?.p95?.toFixed(3)"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Histogram Charts -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-sm font-semibold text-gray-700 mb-2">Delta-V Vehicle 1 Distribution</h3>
+        <div id="mc-dv1-hist" class="h-72"></div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-sm font-semibold text-gray-700 mb-2">Delta-V Vehicle 2 Distribution</h3>
+        <div id="mc-dv2-hist" class="h-72"></div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-sm font-semibold text-gray-700 mb-2">Peak Crush Distribution</h3>
+        <div id="mc-crush-hist" class="h-72"></div>
+      </div>
+    </div>
+  </div>
+</div>

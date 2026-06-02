@@ -1,8 +1,10 @@
-
+from __future__ import annotations
+from typing import Optional, Union
 import numpy as np
 
-# Spring force from two lists
-def SpringFdx(dx, closing, k, input_k_disp, input_k_force, kreturn, dxperm):
+
+def SpringFdx(dx: float, closing: int, k: float, input_k_disp: np.ndarray,
+              input_k_force: np.ndarray, kreturn: float, dxperm: float) -> float:
     """
     spring force using lookup table of displacement [ft], force [lb]
     input_k_disp from model - [ft]
@@ -21,8 +23,8 @@ def SpringFdx(dx, closing, k, input_k_disp, input_k_force, kreturn, dxperm):
     if (closing == 0) & ((dx - dxperm) >= 0):  # separating and dx is less than dxperm
         return 0
 
-# calculate force based on current mutual crush
-def SpringForce(dx, closing, k, input_k_disp, input_k_force, kreturn, dxperm):
+def SpringForce(dx: float, closing: int, k: float, input_k_disp: float,
+                input_k_force: float, kreturn: float, dxperm: float) -> float:
     """
     Spring force using linear spring assumption
     k - spring stiffness [lb/ft]

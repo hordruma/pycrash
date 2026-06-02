@@ -1,11 +1,14 @@
 import setuptools
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+try:
+    with open("README.md", "r") as fh:
+        long_description = fh.read()
+except FileNotFoundError:
+    long_description = ""
 
 setuptools.setup(
     name="pycrash",
-    version="0.0.17",
+    version="0.0.18",
     author="Joe Cormier",
     author_email="joemcormier@outlook.com",
     description="software tool for simulating vehicle motion and impacts based on \
@@ -19,5 +22,5 @@ setuptools.setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.9',
 )

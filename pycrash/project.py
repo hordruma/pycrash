@@ -1,34 +1,20 @@
+from __future__ import annotations
+from typing import Any, Dict, List, Optional, Union
 from tabulate import tabulate
 from cookiecutter.main import cookiecutter
 import os
 import pickle
+import json
 
-# TODO: when loading project, pull saved project data
 
-def yes_or_no(question):
+def yes_or_no(question: str) -> bool:
     while "the answer is invalid":
         reply = str(input(question + ' (y/n): ')).lower().strip()
         if reply[:1] == 'y':
             return True
         if reply[:1] == 'n':
             return False
-
-
-def save_project_data(projectself):
-    """
-    save project data in pycrash data directory to share project info with other modules
-    """
-    if os.path.exists(os.path.join(projectself.project_path, projectself.name, "data", "archive", datafileName)):
-        over_write_file = yes_or_no("Project file already exists here - overwrite?: ")
-        if over_write_file:
-            os.remove(
-                os.path.join(projectself.project_path, projectself.name, "data", "archive", datafileName))  # delete current file
-            ProjectData = project_objects
-
-        else:
-            new_project_name = str(input("Enter new project name: "))
-            projectself.name = new_project_name
-            ProjectData = project_objects
+    return False
 
 
 class Project:
@@ -42,7 +28,7 @@ class Project:
     note - user note
     """
 
-    def __init__(self, project_input=None):
+    def __init__(self, project_input: Optional[Dict[str, Any]] = None) -> None:
         if (project_input == None):
             self.name = input("Project Name: ")
             self.project_path = str(input("Enter path to project directory: ")),
@@ -110,12 +96,11 @@ class Project:
         print(tabulate([["Project", "Description", "Impact Type", "Simulation Type", "Note"],
                         [self.name, self.pdesc, self.impact_type, self.sim_type, self.note]]))
 
-    def show(self):
+    def show(self) -> None:
         print(tabulate([["Project", "Description", "Impact Type", "Simulation Type", "Note"],
                         [self.name, self.pdesc, self.impact_type, self.sim_type, self.note]]))
 
-
-    def save_project(self, *args):
+    def save_project(self, *args: Any) -> None:
         """
         root_path - directory to store project data
         save project to filename along with vehicles of Class Vehicle
@@ -165,7 +150,97 @@ class Project:
             pickle.dump(ProjectData, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def project_info(project_name, proj_dir=False):
+    def save_project_json(self, *args: Any) -> str:
+        """
+        Save project and associated objects to a JSON file.
+        Returns the path to the saved file.
+        """
+        import pandas as pd
+        import numpy as np
+
+        project_objects: Dict[str, Any] = {}
+        project_objects[self.name] = {
+            'type': 'project',
+            'name': self.name,
+            'project_path': self.project_path if isinstance(self.project_path, str) else str(self.project_path),
+            'pdesc': self.pdesc,
+            'sim_type': self.sim_type,
+            'impact_type': self.impact_type,
+            'note': self.note,
+        }
+
+        nvehicles = 0
+        nsdof_models = 0
+        nsideswipe = 0
+        nmultimotion = 0
+        nsinglemotion = 0
+
+        for a in args:
+            obj_data: Dict[str, Any] = {}
+            for key, value in a.__dict__.items():
+                if isinstance(value, pd.DataFrame):
+                    obj_data[key] = value.to_dict(orient='list')
+                elif isinstance(value, np.ndarray):
+                    obj_data[key] = value.tolist()
+                elif isinstance(value, (str, int, float, bool, type(None))):
+                    obj_data[key] = value
+                else:
+                    obj_data[key] = str(value)
+
+            if a.type == 'vehicle':
+                nvehicles += 1
+                project_objects[f'veh{nvehicles}'] = obj_data
+            elif a.type == 'sdof':
+                nsdof_models += 1
+                project_objects[f'sdof{nsdof_models}'] = obj_data
+            elif a.type == 'sideswipe':
+                nsideswipe += 1
+                project_objects[f'ss{nsideswipe}'] = obj_data
+            elif a.type == 'singlemotion':
+                nsinglemotion += 1
+                project_objects[f'singlemotion{nsinglemotion}'] = obj_data
+            elif a.type == 'multimotion':
+                nmultimotion += 1
+                project_objects[f'multimotion{nmultimotion}'] = obj_data
+
+        datafileName = f'{self.name}.json'
+        filepath = os.path.join(self.project_path, self.name, "data", "archive", datafileName)
+
+        with open(filepath, 'w') as f:
+            json.dump(project_objects, f, indent=2, default=str)
+
+        print(f'Project saved to {filepath}')
+        return filepath
+
+
+def load_project_json(project_name: str, proj_dir: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Load project data from a JSON file.
+    Returns a dictionary of the project data.
+    """
+    datafileName = f'{project_name}.json'
+
+    if proj_dir:
+        projectPath = proj_dir
+    else:
+        projectPath = os.path.join(os.getcwd(), "data", "archive")
+
+    filepath = os.path.join(projectPath, datafileName)
+
+    with open(filepath, 'r') as f:
+        data = json.load(f)
+
+    print(f'Loaded project from {filepath}')
+    print(f'Contains {len(data)} objects:')
+    for key in data:
+        obj_type = data[key].get('type', 'unknown')
+        obj_name = data[key].get('name', key)
+        print(f'  {key}: type="{obj_type}", name="{obj_name}"')
+
+    return data
+
+
+def project_info(project_name: str, proj_dir: Optional[str] = None) -> None:
     """
     pulls project data to be used when reloading saved data
     will default to the project > data > archive folder
@@ -176,6 +251,7 @@ def project_info(project_name, proj_dir=False):
         projectPath = proj_dir
     else:
         projectPath = os.path.join(os.getcwd(), "data", "archive")
+
 
     out_names = []
     print("This saved project contains:")
@@ -188,7 +264,7 @@ def project_info(project_name, proj_dir=False):
     print(f'list objects in this order for loading project: {out_names}')
     print(f"Example: project_name, veh1, veh2 = load_project('project_name')")
 
-def load_project(project_name, proj_dir=False):
+def load_project(project_name: str, proj_dir: Optional[str] = None) -> Union[Any, List[Any]]:
     """
     load saved project data using information from "project_info"
     requires multiple variables for input:

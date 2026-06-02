@@ -1,10 +1,19 @@
 """
 functions for detecting impact using point (Veh1) and edge (Veh2)
 """
+from __future__ import annotations
+from typing import Any, Dict, List, TYPE_CHECKING
 import numpy as np
 import math
+import pandas as pd
 
-def detect(i, impactNum, vehicle_list, impPointEdge, strikingVehicle, struckVehicle, crush_data):
+if TYPE_CHECKING:
+    from pycrash.vehicle import Vehicle
+
+
+def detect(i: int, impactNum: int, vehicle_list: List['Vehicle'],
+           impPointEdge: Dict[int, Dict[str, Any]], strikingVehicle: int,
+           struckVehicle: int, crush_data: pd.DataFrame) -> pd.DataFrame:
     """
     detects impacts in sequence using impact location and contact plane lists
     """

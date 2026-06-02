@@ -1,0 +1,350 @@
+<div x-data="pipelineApp()">
+
+  <!-- Page Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">Analyze Crash Report</h1>
+    <p class="mt-2 text-lg text-gray-500">Upload or paste a crash report to extract vehicle data, scene details, and run automatic reconstruction.</p>
+  </div>
+
+  <!-- Input Section -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+
+    <!-- Tabs -->
+    <div x-data="{ tab: 'text' }" class="space-y-4">
+      <div class="flex border-b border-gray-200">
+        <button @click="tab = 'text'"
+                :class="tab === 'text' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="px-4 py-2 -mb-px text-sm font-medium border-b-2 transition-colors focus:outline-none">
+          <i class="fas fa-keyboard mr-2"></i>Text
+        </button>
+        <button @click="tab = 'file'"
+                :class="tab === 'file' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="px-4 py-2 -mb-px text-sm font-medium border-b-2 transition-colors focus:outline-none">
+          <i class="fas fa-file-upload mr-2"></i>File Upload
+        </button>
+      </div>
+
+      <!-- Text Tab -->
+      <div x-show="tab === 'text'" x-transition>
+        <textarea x-model="text"
+                  rows="8"
+                  placeholder="Paste police report or crash description..."
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-700 placeholder-gray-400 resize-y"></textarea>
+        <p class="mt-1 text-xs text-gray-400">Paste a police report, witness statement, or free-form crash description.</p>
+      </div>
+
+      <!-- File Upload Tab -->
+      <div x-show="tab === 'file'" x-transition>
+        <div class="relative border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer"
+             @click="$refs.fileInput.click()"
+             @dragover.prevent="$el.classList.add('border-blue-400', 'bg-blue-50')"
+             @dragleave.prevent="$el.classList.remove('border-blue-400', 'bg-blue-50')"
+             @drop.prevent="$el.classList.remove('border-blue-400', 'bg-blue-50'); $refs.fileInput.files = $event.dataTransfer.files; handleFile($event)">
+          <input type="file"
+                 x-ref="fileInput"
+                 accept=".pdf,.png,.jpg,.jpeg"
+                 @change="handleFile($event)"
+                 class="hidden">
+          <div x-show="!file">
+            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+            <p class="text-sm font-medium text-gray-600">Drag and drop a file here, or click to browse</p>
+            <p class="mt-1 text-xs text-gray-400">Accepts PDF, PNG, JPG (police reports, scene diagrams)</p>
+          </div>
+          <div x-show="file" class="flex items-center justify-center gap-3">
+            <i class="fas fa-file text-blue-500 text-2xl"></i>
+            <div class="text-left">
+              <p class="text-sm font-medium text-gray-700" x-text="file ? file.name : ''"></p>
+              <p class="text-xs text-gray-400" x-text="file ? (file.size / 1024).toFixed(1) + ' KB' : ''"></p>
+            </div>
+            <button @click.stop="file = null; $refs.fileInput.value = ''"
+                    class="ml-2 text-gray-400 hover:text-red-500 transition-colors">
+              <i class="fas fa-times-circle"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Advanced Settings (Collapsible) -->
+  <div x-data="{ open: false }" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+    <button @click="open = !open" class="flex items-center justify-between w-full text-left focus:outline-none">
+      <div class="flex items-center gap-2">
+        <i class="fas fa-cog text-gray-400"></i>
+        <span class="text-sm font-medium text-gray-700">Advanced Settings</span>
+      </div>
+      <i class="fas fa-chevron-down text-gray-400 transition-transform duration-200" :class="open ? 'rotate-180' : ''"></i>
+    </button>
+
+    <div x-show="open" x-collapse x-transition class="mt-4 pt-4 border-t border-gray-100">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <!-- Provider -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">LLM Provider</label>
+          <select x-model="provider"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+            <option value="">Auto</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="openai">OpenAI</option>
+          </select>
+        </div>
+
+        <!-- API Key -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">API Key <span class="text-gray-400">(optional)</span></label>
+          <input type="password"
+                 x-model="apiKey"
+                 placeholder="sk-..."
+                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+        </div>
+
+        <!-- COR -->
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Coefficient of Restitution</label>
+          <input type="number"
+                 x-model="cor"
+                 step="0.05"
+                 min="0"
+                 max="1"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+        </div>
+
+        <!-- Auto-simulate -->
+        <div class="flex items-end pb-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox"
+                   x-model="autoSimulate"
+                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+            <span class="text-sm text-gray-700">Auto-simulate after extraction</span>
+          </label>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="flex flex-wrap gap-3 mb-8">
+    <button @click="analyzeText()"
+            :disabled="!text.trim() || loading"
+            :class="(!text.trim() || loading) ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'"
+            class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+      <i class="fas fa-search mr-2"></i>
+      Analyze Text
+    </button>
+
+    <button @click="uploadFile()"
+            :disabled="!file || loading"
+            :class="(!file || loading) ? 'bg-green-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'"
+            class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+      <i class="fas fa-upload mr-2"></i>
+      Upload &amp; Analyze
+    </button>
+
+    <button @click="reset()"
+            class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">
+      <i class="fas fa-redo mr-2"></i>
+      Reset
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div x-show="loading" x-transition class="mb-8">
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 flex items-center gap-4">
+      <svg class="animate-spin h-8 w-8 text-blue-600 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <div>
+        <p class="text-sm font-semibold text-blue-800">Processing crash report...</p>
+        <p class="text-sm text-blue-600 capitalize" x-text="step"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div x-show="error" x-transition class="mb-8">
+    <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+      <i class="fas fa-exclamation-circle text-red-500 mt-0.5"></i>
+      <div>
+        <p class="text-sm font-medium text-red-800">Analysis Error</p>
+        <p class="text-sm text-red-600 mt-1" x-text="error"></p>
+      </div>
+      <button @click="error = null" class="ml-auto text-red-400 hover:text-red-600 flex-shrink-0">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div x-show="extraction" x-transition>
+
+    <!-- Extracted Vehicles -->
+    <div class="mb-6">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">
+        <i class="fas fa-car text-blue-500 mr-2"></i>Extracted Vehicles
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <template x-for="(vehicle, idx) in (extraction?.vehicles || [])" :key="idx">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900">
+                  <span x-text="[vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ') || 'Vehicle ' + (idx + 1)"></span>
+                </h3>
+                <span x-show="vehicle.role"
+                      class="inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full"
+                      :class="vehicle.role === 'striking' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'"
+                      x-text="vehicle.role"></span>
+              </div>
+              <span class="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-600"
+                    x-text="'V' + (idx + 1)"></span>
+            </div>
+
+            <div class="space-y-2 text-sm">
+              <div x-show="vehicle.speed !== null && vehicle.speed !== undefined" class="flex justify-between">
+                <span class="text-gray-500">Speed</span>
+                <span class="font-medium text-gray-800" x-text="formatSpeed(vehicle.speed)"></span>
+              </div>
+              <div x-show="vehicle.direction" class="flex justify-between">
+                <span class="text-gray-500">Direction</span>
+                <span class="font-medium text-gray-800" x-text="vehicle.direction"></span>
+              </div>
+              <div x-show="vehicle.damage" class="flex justify-between">
+                <span class="text-gray-500">Damage</span>
+                <span class="font-medium text-gray-800" x-text="vehicle.damage"></span>
+              </div>
+            </div>
+
+            <!-- Confidence Bar -->
+            <div x-show="vehicle.confidence !== null && vehicle.confidence !== undefined" class="mt-4">
+              <div class="flex justify-between items-center mb-1">
+                <span class="text-xs text-gray-500">Confidence</span>
+                <span class="text-xs font-medium" :class="confidenceColor(vehicle.confidence)"
+                      x-text="confidenceLabel(vehicle.confidence) + ' (' + Math.round(vehicle.confidence * 100) + '%)'"></span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="h-2 rounded-full transition-all duration-500"
+                     :class="vehicle.confidence >= 0.8 ? 'bg-green-500' : vehicle.confidence >= 0.5 ? 'bg-yellow-500' : 'bg-red-500'"
+                     :style="'width: ' + (vehicle.confidence * 100) + '%'"></div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- Scene Info -->
+    <div x-show="extraction?.scene" class="mb-6">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">
+        <i class="fas fa-map-marked-alt text-green-500 mr-2"></i>Scene Information
+      </h2>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+          <div x-show="extraction.scene.road_surface">
+            <span class="block text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Road Surface</span>
+            <span class="text-gray-800 font-medium" x-text="extraction.scene.road_surface"></span>
+          </div>
+          <div x-show="extraction.scene.weather">
+            <span class="block text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Weather</span>
+            <span class="text-gray-800 font-medium" x-text="extraction.scene.weather"></span>
+          </div>
+          <div x-show="extraction.scene.speed_limit">
+            <span class="block text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Speed Limit</span>
+            <span class="text-gray-800 font-medium" x-text="extraction.scene.speed_limit + ' mph'"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Crash Type & Suggested Model Badges -->
+    <div class="flex flex-wrap gap-3 mb-6">
+      <span x-show="extraction?.crash_type"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full bg-purple-100 text-purple-700">
+        <i class="fas fa-car-crash"></i>
+        <span x-text="extraction?.crash_type"></span>
+      </span>
+      <span x-show="extraction?.suggested_model"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full bg-indigo-100 text-indigo-700">
+        <i class="fas fa-calculator"></i>
+        <span>Model: </span>
+        <span x-text="extraction?.suggested_model"></span>
+      </span>
+    </div>
+
+    <!-- Simulation Results -->
+    <div x-show="simulation" class="mb-6">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">
+        <i class="fas fa-chart-line text-purple-500 mr-2"></i>Simulation Results
+      </h2>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+        <!-- Delta-V Cards -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+          <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Delta-V (Vehicle 1)</p>
+          <p class="text-3xl font-bold text-blue-600">
+            <span x-text="simulation?.delta_v_1 !== undefined ? simulation.delta_v_1.toFixed(1) : '--'"></span>
+          </p>
+          <p class="text-sm text-gray-400 mt-1">mph</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+          <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Delta-V (Vehicle 2)</p>
+          <p class="text-3xl font-bold text-green-600">
+            <span x-text="simulation?.delta_v_2 !== undefined ? simulation.delta_v_2.toFixed(1) : '--'"></span>
+          </p>
+          <p class="text-sm text-gray-400 mt-1">mph</p>
+        </div>
+
+        <!-- Peak Crush -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+          <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Peak Crush</p>
+          <p class="text-3xl font-bold text-orange-600">
+            <span x-text="simulation?.peak_crush !== undefined ? simulation.peak_crush.toFixed(2) : '--'"></span>
+          </p>
+          <p class="text-sm text-gray-400 mt-1">ft</p>
+        </div>
+
+      </div>
+
+      <!-- Peak Force (full width) -->
+      <div x-show="simulation?.peak_force !== undefined" class="mt-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+          <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Peak Force</p>
+          <p class="text-3xl font-bold text-red-600">
+            <span x-text="simulation?.peak_force !== undefined ? simulation.peak_force.toFixed(0) : '--'"></span>
+          </p>
+          <p class="text-sm text-gray-400 mt-1">lbs</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div x-show="summary" class="mb-6">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">
+        <i class="fas fa-file-alt text-gray-500 mr-2"></i>Summary
+      </h2>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line" x-text="summary"></p>
+      </div>
+    </div>
+
+    <!-- Result Action Buttons -->
+    <div class="flex flex-wrap gap-3 mt-6 pt-6 border-t border-gray-200">
+      <button x-show="caseId"
+              @click="goToCase()"
+              class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        <i class="fas fa-folder-open mr-2"></i>
+        View Case
+      </button>
+      <button @click="goToSimulator()"
+              class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+        <i class="fas fa-play-circle mr-2"></i>
+        Open in Simulator
+      </button>
+    </div>
+
+  </div>
+
+</div>

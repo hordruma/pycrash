@@ -1,0 +1,146 @@
+<div x-data="{ healthy: false }" x-init="fetch('/health').then(r => healthy = r.ok).catch(() => {})">
+
+  <!-- Header -->
+  <div class="mb-10">
+    <h1 class="text-3xl font-bold text-gray-900">Welcome to Crashout</h1>
+    <p class="mt-2 text-lg text-gray-500">AI-Powered Vehicle Crash Reconstruction</p>
+    <div class="mt-3 flex items-center gap-2 text-sm">
+      <span class="relative flex h-2.5 w-2.5">
+        <span class="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping"
+              :class="healthy ? 'bg-green-400' : 'bg-red-400'"></span>
+        <span class="relative inline-flex rounded-full h-2.5 w-2.5"
+              :class="healthy ? 'bg-green-500' : 'bg-red-500'"></span>
+      </span>
+      <span class="text-gray-500" x-text="healthy ? 'System Online' : 'System Offline'"></span>
+    </div>
+  </div>
+
+  <!-- Action Cards 2x2 -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-12">
+
+    <!-- Card 1: Analyze Crash Report -->
+    <div class="bg-white rounded-xl p-6 border border-gray-200 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-blue-300 group"
+         @click="window.dispatchEvent(new CustomEvent('navigate', {detail:{page:'pipeline'}}))">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+          <i class="fas fa-file-alt text-blue-600 text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">Analyze Crash Report</h3>
+          <p class="mt-1 text-sm text-gray-500">Upload or paste a crash report and let AI extract vehicles, speeds, and impact data automatically.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Run Simulation -->
+    <div class="bg-white rounded-xl p-6 border border-gray-200 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-green-300 group"
+         @click="window.dispatchEvent(new CustomEvent('navigate', {detail:{page:'simulator'}}))">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center group-hover:bg-green-100 transition-colors">
+          <i class="fas fa-car-crash text-green-600 text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 group-hover:text-green-700 transition-colors">Run Simulation</h3>
+          <p class="mt-1 text-sm text-gray-500">Configure and run SDOF crash simulations with vehicle properties, stiffness, and closing speed.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Uncertainty Analysis -->
+    <div class="bg-white rounded-xl p-6 border border-gray-200 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-purple-300 group"
+         @click="window.dispatchEvent(new CustomEvent('navigate', {detail:{page:'montecarlo'}}))">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-purple-50 flex items-center justify-center group-hover:bg-purple-100 transition-colors">
+          <i class="fas fa-chart-bar text-purple-600 text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 group-hover:text-purple-700 transition-colors">Uncertainty Analysis</h3>
+          <p class="mt-1 text-sm text-gray-500">Run Monte Carlo simulations to quantify uncertainty ranges in delta-V and crush energy results.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 4: Vehicle Database -->
+    <div class="bg-white rounded-xl p-6 border border-gray-200 cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-amber-300 group"
+         @click="window.dispatchEvent(new CustomEvent('navigate', {detail:{page:'vehicles'}}))">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-amber-50 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
+          <i class="fas fa-database text-amber-600 text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 group-hover:text-amber-700 transition-colors">Vehicle Database</h3>
+          <p class="mt-1 text-sm text-gray-500">Browse and look up vehicle specifications, dimensions, and stiffness values for common US vehicles.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Quick Start Guide -->
+  <div class="mb-12">
+    <h2 class="text-xl font-bold text-gray-900 mb-6">Quick Start</h2>
+    <div class="bg-white rounded-xl border border-gray-200 p-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+
+        <!-- Connecting lines (visible on md+) -->
+        <div class="hidden md:block absolute top-8 left-1/3 w-1/3 border-t-2 border-dashed border-gray-300 -translate-x-0"></div>
+        <div class="hidden md:block absolute top-8 right-0 w-1/3 border-t-2 border-dashed border-gray-300 -translate-x-0"></div>
+
+        <!-- Step 1 -->
+        <div class="flex flex-col items-center text-center">
+          <div class="w-16 h-16 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-2xl font-bold mb-4 ring-4 ring-white relative z-10">1</div>
+          <h3 class="font-semibold text-gray-900 mb-1">Upload Report</h3>
+          <p class="text-sm text-gray-500">Paste crash report text, upload a PDF, or provide photos of the police report.</p>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="flex flex-col items-center text-center">
+          <div class="w-16 h-16 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-2xl font-bold mb-4 ring-4 ring-white relative z-10">2</div>
+          <h3 class="font-semibold text-gray-900 mb-1">AI Extracts &amp; Simulates</h3>
+          <p class="text-sm text-gray-500">AI identifies vehicles, speeds, and impact details, then runs the physics simulation.</p>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="flex flex-col items-center text-center">
+          <div class="w-16 h-16 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-2xl font-bold mb-4 ring-4 ring-white relative z-10">3</div>
+          <h3 class="font-semibold text-gray-900 mb-1">Get Results</h3>
+          <p class="text-sm text-gray-500">Review delta-V, crush energy, and simulation outputs. Generate a professional PDF report.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature Highlights -->
+  <div>
+    <h2 class="text-xl font-bold text-gray-900 mb-4">Platform Capabilities</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+
+      <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+        <i class="fas fa-project-diagram text-indigo-500 text-2xl mb-2"></i>
+        <p class="text-sm font-medium text-gray-800">6-Layer Hypergraph</p>
+        <p class="text-xs text-gray-400 mt-1">Structured case data</p>
+      </div>
+
+      <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+        <i class="fas fa-wave-square text-green-500 text-2xl mb-2"></i>
+        <p class="text-sm font-medium text-gray-800">SDOF Simulation</p>
+        <p class="text-xs text-gray-400 mt-1">Spring-mass crash model</p>
+      </div>
+
+      <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+        <i class="fas fa-dice text-purple-500 text-2xl mb-2"></i>
+        <p class="text-sm font-medium text-gray-800">Monte Carlo Analysis</p>
+        <p class="text-xs text-gray-400 mt-1">Uncertainty quantification</p>
+      </div>
+
+      <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
+        <i class="fas fa-file-pdf text-red-500 text-2xl mb-2"></i>
+        <p class="text-sm font-medium text-gray-800">PDF Reports</p>
+        <p class="text-xs text-gray-400 mt-1">Professional output</p>
+      </div>
+
+    </div>
+  </div>
+
+</div>

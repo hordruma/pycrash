@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Dict, Optional, TYPE_CHECKING
 import pandas as pd
 import numpy as np
 from copy import deepcopy
@@ -7,6 +9,9 @@ from .visualization.vehicle import plot_driver_inputs
 from .visualization.kinematics import plot_model
 from .visualization.model import plot_motion
 from .visualization.tire_details import tire_details, vertical_forces
+
+if TYPE_CHECKING:
+    from .vehicle import Vehicle
 
 figure_size = (16, 9)
 
@@ -31,7 +36,7 @@ class SingleMotion:
     creates independent copy of vehicle at instantiation
     """
 
-    def __init__(self, name, veh, user_sim_defaults=None):
+    def __init__(self, name: str, veh: 'Vehicle', user_sim_defaults: Optional[Dict[str, float]] = None) -> None:
         """
         default values necessary for single motion simulation are loaded when a vehicle is instantiated
         """
@@ -82,26 +87,26 @@ class SingleMotion:
         # create point data in vehicle and global frame
         self.veh = position_data_motion(self.veh)
 
-    def plot_inputs(self):
+    def plot_inputs(self) -> None:
         plot_driver_inputs(self.veh)
 
-    def vehicle_info(self):
+    def vehicle_info(self) -> None:
         """
         get input on the vehicle used to create Kinematics object
         """
         print(f'Vehicle name is {self.veh.name}')
 
-    def plot_model(self):
+    def plot_model(self) -> None:
         plot_model(self.veh)
 
-    def global_motion(self, i):
+    def global_motion(self, i: int) -> None:
         plot_motion(self.veh, i)
 
-    def tire_detail(self):
+    def tire_detail(self) -> None:
         tire_details(self.veh)
         vertical_forces(self.veh)
 
-    def CG_motion(self):
+    def CG_motion(self) -> None:
         """
         plot location of CG in global reference frame
         """
@@ -125,7 +130,7 @@ class SingleMotion:
         plt.gca().invert_yaxis()
         plt.show()
 
-    def draw_vehicle(self, i):
+    def draw_vehicle(self, i: int) -> None:
         """
         plots vehicle motion along with velocity vector and coordinate axes
         """
@@ -176,7 +181,7 @@ class SingleMotion:
         plt.gca().invert_yaxis()
         plt.show()
 
-    def draw_vehicle_motion(self, i, tire_path=True):
+    def draw_vehicle_motion(self, i: int, tire_path: bool = True) -> None:
         """
         Plot Vehicle in Global reference frame
         """

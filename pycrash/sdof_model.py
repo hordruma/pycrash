@@ -1,11 +1,20 @@
+from __future__ import annotations
+from typing import Any, Dict, Optional, Union
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+
+# Compatibility: np.trapz was removed in numpy 2.0, replaced by np.trapezoid
+if not hasattr(np, 'trapz'):
+    np.trapz = np.trapezoid
+
 from .sdof_calcs.sdof_calculations import SingleDOFmodel
 from copy import deepcopy
 import inspect
 import csv
 import os
+
+from .vehicle import Vehicle
 
 
 class SDOF_Model():
@@ -22,7 +31,8 @@ class SDOF_Model():
     for force at a given displacement
     """
 
-    def __init__(self, veh1, veh2, AB_offset=0, model_inputs=None, print_output=True):
+    def __init__(self, veh1: Vehicle, veh2: Vehicle, AB_offset: float = 0,
+                 model_inputs: Optional[Dict[str, Any]] = None, print_output: bool = True) -> None:
         self.type = "sdof"  # class type
         # create independent copy of vehicle class instances
         self.veh1 = deepcopy(veh1)
@@ -170,24 +180,24 @@ class SDOF_Model():
             if self.ktype == "constantK":
                 self.model['veh2_dx'] = [row * self.k / self.veh2.k for row in self.model.dx]
 
-    def input_dict(self):
+    def input_dict(self) -> Dict[str, Any]:
         """
         return a dictionary to save / modify inputs
         """
         return {"name": self.name,
                 "k": self.k,
                 "cor": self.cor,
-                "tstop": self.__ttype
+                "tstop": self.tstop
                 }
 
-    def show(self):
+    def show(self) -> None:
         """ display all attributes assigned to the sdof model """
         for i in inspect.getmembers(self):
             if not i[0].startswith('_'):
                 if not inspect.ismethod(i[1]):
                     print(i)
 
-    def plot_fdx(self):
+    def plot_fdx(self) -> None:
         """
         Plot force - mutual crush from model result
         """
@@ -203,11 +213,9 @@ class SDOF_Model():
         ax.spines['top'].set_visible(False)
         plt.xlabel('Mutual Crush (in)', fontsize=20)
         plt.ylabel('Force (lb)', fontsize=20)
-        # plt.grid(which='both', axis='both')
-        # plt.legend(fontsize=14, frameon = False)
         fig.show()
 
-    def plot_fdx_vehicle(self, vehNum):
+    def plot_fdx_vehicle(self, vehNum: int) -> None:
         """
         Plot force - mutual crush from model result
         """
@@ -231,8 +239,8 @@ class SDOF_Model():
         # plt.legend(fontsize=14, frameon = False)
         fig.show()
 
-    def crush_energy(self):
-        """ inegrate force-displacement data to get energy """
+    def crush_energy(self) -> Dict[str, float]:
+        """ integrate force-displacement data to get energy """
 
         """ divide disp-force data """
         disp_max_i = self.model.dx.idxmin()
@@ -294,7 +302,7 @@ class SDOF_Model():
 
         return out
 
-    def get_results(self):
+    def get_results(self) -> None:
         print('')
         print(f'Simulation results for {self.veh1.name}:')
         print(f'delta-V: {(self.model.v1.iloc[0] - self.model.v1.iloc[-1]) / 1.46667:0.2f} mph')
